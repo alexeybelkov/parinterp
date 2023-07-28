@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(imops)
+project(pardelaunay)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -20,7 +20,7 @@ set(PARLAY_NUM_THREADS 8)
 find_package(pybind11 CONFIG REQUIRED)
 
 pybind11_add_module(pydelaunay src/delaunay.cpp)
-add_executable(imops src/delaunay.cpp)
+add_executable(pardelaunay src/delaunay.cpp)
 #        pargeo/as_numpy.h)
 
-target_link_libraries(imops ${PYTHON_LIBRARIES})
+target_link_libraries(pardelaunay ${PYTHON_LIBRARIES})
