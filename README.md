@@ -5,4 +5,4 @@ Python binding of Parallel Delaunay Triangulation from [ParGeo](https://github.c
 cd pydelaunay
 python3 setup.py develop
 ```
-For the last command you may need to manually write install directory to --install-dir which is visible by python       
+For the last command you may need to manually write install directory which is visible by python to --install-dir arg, or just installation with sudo     
