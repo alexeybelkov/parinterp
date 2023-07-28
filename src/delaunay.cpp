@@ -381,7 +381,9 @@ triangles<pointT> delaunay(sequence<pointT> &P) {
     return triangles<pointT>(result_points, result_triangles);
 }
 
-    py::array_t<int32_t, py::array::c_style | py::array::forcecast> numpy_delaunay(py::array_t<int32_t, py::array::c_style | py::array::forcecast>& array) {
+// by alexeybelkov
+
+py::array_t<int32_t, py::array::c_style | py::array::forcecast> numpy_delaunay(py::array_t<int32_t, py::array::c_style | py::array::forcecast>& array) {
     uint32_t n = array.shape()[0];
     parlay::sequence<pbbsbench::pointT> P(n);
     parlay::parallel_for (0, n, [&] (uint32_t i) {
