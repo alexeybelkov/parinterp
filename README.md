@@ -4,6 +4,7 @@ ParGeo is heavily based on **[parlaylib](https://cmuparlay.github.io/parlaylib/)
 ### Installation       
 You'll have to manually put all required pathes into CMakeLists.txt       
 ```console
+git clone https://github.com/alexeybelkov/pydelaunay.git
 cd pydelaunay
 python3 setup.py develop
 ```
