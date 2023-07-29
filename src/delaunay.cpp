@@ -29,13 +29,11 @@
 #include "delaunay.h"
 #include "topology.h"
 #include "neighbors.h"
-#include "point.h"
 #include <fstream>
-#include <chrono>
 #include <Python.h>
 #include <pybind11/pybind11.h>
-//#include <pybind11/numpy.h>
-//#include "as_numpy.h"
+#include "triangulation.h"
+
 namespace py = pybind11;
 
 #define SILENT
