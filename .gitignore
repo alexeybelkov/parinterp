@@ -1,5 +1,6 @@
-.ipynb
 cmake*
 build*
 .idea
-
+notebooks
+*.so
+*.egg-info

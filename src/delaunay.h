@@ -3,6 +3,7 @@
 #include "parlay/primitives.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+//#include "triangulation.h"
 
 namespace py = pybind11;
 
@@ -12,5 +13,5 @@ namespace pbbsbench {
   using pointT = point2d<coord>;
 
   triangles<pointT> delaunay(parlay::sequence<pointT>& P);
-  py::array_t<int32_t, py::array::c_style | py::array::forcecast> numpy_delaunay(py::array_t<int32_t, py::array::c_style | py::array::forcecast>& array);
+//  Triangulation numpy_delaunay(py::array_t<int32_t, py::array::c_style | py::array::forcecast>& array);
 }

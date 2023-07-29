@@ -59,6 +59,7 @@ using vertex_t = vertex<pointT>;
 using simplex_t = simplex<pointT>;
 using triang_t = triangle<pointT>;
 using vect = typename pointT::vector;
+//using Triangulation = Triangulation;
 
 template <typename pointT>
 struct Qs {
@@ -79,7 +80,7 @@ using Qs_t = Qs<pointT>;
 // Requires that the mesh is properly connected and convex
 simplex_t find(vertex_t *p, simplex_t start) {
   simplex_t t = start;
-  while (1) {
+  while (true) {
     int i;
     for (i=0; i < 3; i++) {
       t = t.rotClockwise();
@@ -312,10 +313,6 @@ void incrementally_add_points(sequence<vertex_t*> v, vertex_t* start) {
 // *************************************************************
 
 triangles<pointT> delaunay(sequence<pointT> &P) {
-//parlay::sequence<tri> delaunay(sequence<pointT> &P) {
-//py::array<int> delaunay(sequence<pointT> &P) {
-//parlay::sequence<tri> delaunay(py::array_t<int, py::array::c_style | py::array::forcecast> array) {
-
 
   pargeo::timer t("delaunay", false);
   t.start();
@@ -363,48 +360,47 @@ triangles<pointT> delaunay(sequence<pointT> &P) {
   if (CHECK) check_delaunay(Triangles, boundary_size);
 
   // just the three corner ids for each triangle
-  auto result_triangles = tabulate(num_triangles, [&] (size_t i) -> tri {
-    vertex_t** vtx = Triangles[i].vtx;
-    tri r = {(int) vtx[0]->id, (int) vtx[1]->id, (int) vtx[2]->id};
-    return r;});
+  parlay::sequence<tri> result_triangles(num_triangles - boundary_triangles);
+  parlay::parallel_for(0, num_triangles - boundary_triangles, [&] (uint32_t i) {
+      vertex_t** vtx = Triangles[i].vtx;
+      result_triangles[i] = {int32_t(vtx[0] -> id), int32_t(vtx[1] -> id), int32_t(vtx[2] -> id)};
+  });
 
   // just the points, including the added boundary points
-  auto result_points = tabulate(num_vertices, [&] (size_t i) {
-    pointT r = (i < n) ? P[i] : Vertices[i].pt;
-    //cout << r[0] << ", " << r[1] << endl;
-    return r;});
+//  auto result_points = tabulate(num_vertices, [&] (size_t i) {
+//    pointT r = (i < n) ? P[i] : Vertices[i].pt;
+//    //cout << r[0] << ", " << r[1] << endl;
+//    return r;});
 #ifndef SILENT
   t.next("generate output");
 #endif
-    return triangles<pointT>(result_points, result_triangles);
+    return triangles<pointT>(P, result_triangles);
 }
 
 // by alexeybelkov
 
-py::array_t<int32_t, py::array::c_style | py::array::forcecast> numpy_delaunay(py::array_t<int32_t, py::array::c_style | py::array::forcecast>& array) {
+Triangulation numpy_delaunay(py::array_t<int32_t, py::array::c_style | py::array::forcecast>& array) {
     uint32_t n = array.shape()[0];
     parlay::sequence<pbbsbench::pointT> P(n);
     parlay::parallel_for (0, n, [&] (uint32_t i) {
         P[i] = pbbsbench::pointT(array.at(i, 0), array.at(i, 1));
     });
     triangles<pointT> triangles = delaunay(P);
-    n = triangles.P.size();
-    std::vector<long> shape = {long(triangles.P.size()), 5};
-    std::vector<long> strides = {sizeof(int32_t) * 5, sizeof(int32_t)};
-    std::vector<int> flatten(5 * n);
-    parlay::parallel_for (0, n, [&] (uint32_t i) {
-        flatten[5 * i] = int32_t(triangles.P[i].x);
-        flatten[5 * i + 1] = int32_t(triangles.P[i].y);
-        for (uint32_t j = 2; j < 5; ++j)
-            flatten[5 * i + j] = triangles.T[i][j];
-    });
-    return {std::move(shape), std::move(strides), flatten.data()};
+    return {triangles};
 }
 
 } // End name space pbbsbench
 
 PYBIND11_MODULE(pydelaunay, m) {
     m.def("delaunay", &pbbsbench::numpy_delaunay);
+    py::class_<Triangulation>(m, "Triangulation", "Triangulation class")
+            .def(py::init<>(), "Default constructor, does nothing")
+            .def("find_triangle", static_cast<int32_t (Triangulation::*)(pbbsbench::pointT&)>(&Triangulation::find_triangle),
+                 "Return index of triangle, containing point p, else reutrn -1", py::arg("p"))
+            .def("find_triangle", static_cast<int32_t (Triangulation::*)(int32_t&, int32_t&)>(&Triangulation::find_triangle),
+                 "Return index of triangle, containing point p, else reutrn -1", py::arg("x"), py::arg("y"))
+            .def_readonly("vertices", &Triangulation::vertices, "numpy array of vertices")
+            .def_readonly("triangles", &Triangulation::triangles, "numpy array of triangles");
 }
 
 int main() {}
