@@ -360,11 +360,21 @@ triangles<pointT> delaunay(sequence<pointT> &P) {
   if (CHECK) check_delaunay(Triangles, boundary_size);
 
   // just the three corner ids for each triangle
-  parlay::sequence<tri> result_triangles(num_triangles - boundary_triangles);
-  parlay::parallel_for(0, num_triangles - boundary_triangles, [&] (uint32_t i) {
-      vertex_t** vtx = Triangles[i].vtx;
-      result_triangles[i] = {int32_t(vtx[0] -> id), int32_t(vtx[1] -> id), int32_t(vtx[2] -> id)};
-  });
+  parlay::sequence<tri> result_triangles;
+//  parlay::parallel_for(0, num_triangles - boundary_triangles, [&] (uint32_t i) {
+//      vertex_t** vtx = Triangles[i].vtx;
+//      result_triangles[i] = {int32_t(vtx[0] -> id), int32_t(vtx[1] -> id), int32_t(vtx[2] -> id)};
+//  });
+
+    for (auto& triangle : Triangles) {
+        vertex_t** vtx = triangle.vtx;
+        int32_t a = vtx[0] -> id;
+        int32_t b = vtx[1] -> id;
+        int32_t c = vtx[2] -> id;
+        if (a < 0 or b < 0 or c < 0 or a >= P.size() or b >= P.size() or c >= P.size() or a == b or b == c or a == c)
+            continue;
+        result_triangles.push_back({a, b, c}); // amortized complexity O(1) ?
+    }
 
   // just the points, including the added boundary points
 //  auto result_points = tabulate(num_vertices, [&] (size_t i) {
