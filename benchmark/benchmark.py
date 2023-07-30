@@ -14,7 +14,7 @@ arrays: Mapping[str, np.ndarray]= dict()
 for key, p in path.items():
     arrays[key] = np.load(p, allow_pickle=True)
 
-times = {'my': [], 'sp': []}
+times = {'pydelaunay': [], 'scipy': []}
 sizes = []
 
 for k, x in tqdm(arrays.items()):
@@ -25,17 +25,18 @@ for k, x in tqdm(arrays.items()):
 
     sizes.append(len(points))
 
-    times['my'].append(timeit(my_delaunay, number=10) / 10)
-    times['sp'].append(timeit(sp_delaunay, number=10) / 10)
+    times['pydelaunay'].append(timeit(my_delaunay, number=10) / 10)
+    times['scipy'].append(timeit(sp_delaunay, number=10) / 10)
 
 indexes = np.argsort(sizes)
 sizes = [sizes[i] for i in indexes]
-times['my'] = [times['my'][i] for i in indexes]
-times['sp'] = [times['sp'][i] for i in indexes]
+times['pydelaunay'] = [times['pydelaunay'][i] for i in indexes]
+times['scipy'] = [times['scipy'][i] for i in indexes]
 
-plt.plot(sizes, times['my'], label='pydelaunay', marker='x')
-plt.plot(sizes, times['sp'], label='scipy.spatial.Delaunay', marker='x')
+plt.plot(sizes, times['pydelaunay'], label='pydelaunay', marker='x')
+plt.plot(sizes, times['scipy'], label='scipy.spatial.Delaunay', marker='x')
 plt.legend()
+plt.title('\n'.join([f'{k} :: <t>: {np.round(np.mean(times[k]),3)} | t_min: {np.round(np.min(times[k]), 3)} | t_max: {np.round(np.max(times[k]), 3)}' for k in times.keys()]))
 plt.xlabel('array size')
 plt.ylabel('seconds')
 plt.savefig('benchmark/benchmark.jpg')

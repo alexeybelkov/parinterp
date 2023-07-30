@@ -49,8 +49,6 @@ bool Triangulation::point_in_triangle(pbbsbench::pointT& p, pbbsbench::tri& tria
     pbbsbench::pointT A = triangulation.P[triangle[0]];
     pbbsbench::pointT B = triangulation.P[triangle[1]];
     pbbsbench::pointT C = triangulation.P[triangle[2]];
-//    var s = (p0.X - p2.X) * (p.Y - p2.Y) - (p0.Y - p2.Y) * (p.X - p2.X);
-//    var t = (p1.X - p0.X) * (p.Y - p0.Y) - (p1.Y - p0.Y) * (p.X - p0.X);
     int32_t s = (A.x - C.x) * (p.x - C.y) - (A.y - C.y) * (p.x - C.x);
     int32_t t = (B.x - A.x) * (p.y - A.y) - (B.y - A.y) * (p.x - A.x);
 
@@ -66,8 +64,6 @@ bool Triangulation::point_in_triangle(int32_t& x, int32_t& y, pbbsbench::tri& tr
     pbbsbench::pointT A = triangulation.P[triangle[0]];
     pbbsbench::pointT B = triangulation.P[triangle[1]];
     pbbsbench::pointT C = triangulation.P[triangle[2]];
-//    var s = (p0.X - p2.X) * (p.Y - p2.Y) - (p0.Y - p2.Y) * (p.X - p2.X);
-//    var t = (p1.X - p0.X) * (p.Y - p0.Y) - (p1.Y - p0.Y) * (p.X - p0.X);
     int32_t s = (A.x - C.x) * (x - C.y) - (A.y - C.y) * (x - C.x);
     int32_t t = (B.x - A.x) * (y - A.y) - (B.y - A.y) * (x - A.x);
 

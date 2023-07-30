@@ -427,14 +427,17 @@ struct ray {
   ray() {}
 };
 
+const double pi = 3.14159;
+constexpr double grad_on_rad = 180.0 / 3.14159;
+constexpr double rad_on_grad = 3.14159 / 180.0;
+
 template<class coord>
 inline coord angle(point2d<coord> a, point2d<coord> b, point2d<coord> c) {
   vector2d<coord> ba = (b-a);
   vector2d<coord> ca = (c-a);
   coord lba = ba.Length();
   coord lca = ca.Length();
-  coord pi = 3.14159;
-  return 180/pi*acos(ba.dot(ca)/(lba*lca));
+  return grad_on_rad*acos(ba.dot(ca)/(lba*lca));
 }
 
 template<class coord>
@@ -445,8 +448,8 @@ inline coord minAngleCheck(point2d<coord> a, point2d<coord> b, point2d<coord> c,
   coord lba = ba.Length();
   coord lca = ca.Length();
   coord lcb = cb.Length();
-  coord pi = 3.14159;
-  coord co = cos(angle*pi/180.);
+  //coord pi = 3.14159;
+  coord co = cos(angle * rad_on_grad);
   return (ba.dot(ca)/(lba*lca) > co || ca.dot(cb)/(lca*lcb) > co || 
 	  -ba.dot(cb)/(lba*lcb) > co);
 }
