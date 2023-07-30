@@ -4,3 +4,5 @@ build*
 notebooks
 *.so
 *.egg-info
+#benchmark/*.py
+benchmark/*.json
