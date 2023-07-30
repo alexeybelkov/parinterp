@@ -13,6 +13,7 @@ For the last command you may need to manually write install directory which is v
 ```python
 import numpy as np
 from pydelaunay import delaunay
-points = np.random.binomial(1024, 0.5, (1000, 2))
+points = np.random.randint(low=0, high=1024, size=(512, 2))
+points = np.unique(points, axis=0)
 triangulation = delaunay(points)
 ```
