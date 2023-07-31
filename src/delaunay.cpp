@@ -33,6 +33,7 @@
 #include <Python.h>
 #include <pybind11/pybind11.h>
 #include "triangulation.h"
+#include "interpolator.h"
 
 namespace py = pybind11;
 
@@ -59,7 +60,7 @@ using vertex_t = vertex<pointT>;
 using simplex_t = simplex<pointT>;
 using triang_t = triangle<pointT>;
 using vect = typename pointT::vector;
-//using Triangulation = Triangulation;
+using Triangulation = Triangulation;
 
 template <typename pointT>
 struct Qs {
@@ -312,7 +313,7 @@ void incrementally_add_points(sequence<vertex_t*> v, vertex_t* start) {
 //    DRIVER
 // *************************************************************
 
-triangles<pointT> delaunay(sequence<pointT> &P) {
+triangles<pointT> delaunay(const sequence<pointT> &P) {
 
   pargeo::timer t("delaunay", false);
   t.start();
@@ -361,9 +362,10 @@ triangles<pointT> delaunay(sequence<pointT> &P) {
 
   // just the three corner ids for each triangle
   parlay::sequence<tri> result_triangles;
-//  parlay::parallel_for(0, num_triangles - boundary_triangles, [&] (uint32_t i) {
+//  parlay::parallel_for(0, num_triangles, [&] (uint32_t i) {
 //      vertex_t** vtx = Triangles[i].vtx;
 //      result_triangles[i] = {int32_t(vtx[0] -> id), int32_t(vtx[1] -> id), int32_t(vtx[2] -> id)};
+//      //result_triangles[i].
 //  });
 
     for (auto& triangle : Triangles) {
@@ -371,7 +373,7 @@ triangles<pointT> delaunay(sequence<pointT> &P) {
         int32_t a = vtx[0] -> id;
         int32_t b = vtx[1] -> id;
         int32_t c = vtx[2] -> id;
-        if (a < 0 or b < 0 or c < 0 or a >= P.size() or b >= P.size() or c >= P.size() or a == b or b == c or a == c)
+        if (a >= P.size() or b >= P.size() or c >= P.size())
             continue;
         result_triangles.push_back({a, b, c}); // amortized complexity O(1) ?
     }
@@ -389,7 +391,7 @@ triangles<pointT> delaunay(sequence<pointT> &P) {
 
 // by alexeybelkov
 
-Triangulation numpy_delaunay(py::array_t<int32_t, py::array::c_style | py::array::forcecast>& array) {
+Triangulation numpy_delaunay(const py::array_t<int32_t, py::array::c_style | py::array::forcecast>& array) {
     uint32_t n = array.shape()[0];
     parlay::sequence<pbbsbench::pointT> P(n);
     parlay::parallel_for (0, n, [&] (uint32_t i) {
@@ -406,9 +408,9 @@ PYBIND11_MODULE(pydelaunay, m) {
     py::class_<Triangulation>(m, "Triangulation", "Triangulation class")
             .def(py::init<>(), "Default constructor, does nothing")
             .def("find_triangle", static_cast<int32_t (Triangulation::*)(pbbsbench::pointT&)>(&Triangulation::find_triangle),
-                 "Return index of triangle, containing point p, else reutrn -1", py::arg("p"))
+                 "Return index of triangle, containing point p, else return -1", py::arg("p"))
             .def("find_triangle", static_cast<int32_t (Triangulation::*)(int32_t&, int32_t&)>(&Triangulation::find_triangle),
-                 "Return index of triangle, containing point p, else reutrn -1", py::arg("x"), py::arg("y"))
+                 "Return index of triangle, containing point p, else return -1", py::arg("x"), py::arg("y"))
             .def_readonly("vertices", &Triangulation::vertices, "numpy array of vertices")
             .def_readonly("triangles", &Triangulation::triangles, "numpy array of triangles");
 }

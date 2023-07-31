@@ -49,14 +49,14 @@ bool Triangulation::point_in_triangle(pbbsbench::pointT& p, pbbsbench::tri& tria
     pbbsbench::pointT A = triangulation.P[triangle[0]];
     pbbsbench::pointT B = triangulation.P[triangle[1]];
     pbbsbench::pointT C = triangulation.P[triangle[2]];
-    int32_t s = (A.x - C.x) * (p.x - C.y) - (A.y - C.y) * (p.x - C.x);
-    int32_t t = (B.x - A.x) * (p.y - A.y) - (B.y - A.y) * (p.x - A.x);
+    auto s = (A.x - C.x) * (p.x - C.y) - (A.y - C.y) * (p.x - C.x);
+    auto t = (B.x - A.x) * (p.y - A.y) - (B.y - A.y) * (p.x - A.x);
 
     if ((s < 0) != (t < 0) && s != 0 && t != 0) {
         return false;
     }
 
-    int32_t d = (C.x - B.x) * (p.y - B.y) - (C.y - B.y) * (p.x - B.x);
+    auto d = (C.x - B.x) * (p.y - B.y) - (C.y - B.y) * (p.x - B.x);
     return d == 0 || (d < 0) == (s + t <= 0);
 }
 
@@ -64,14 +64,14 @@ bool Triangulation::point_in_triangle(int32_t& x, int32_t& y, pbbsbench::tri& tr
     pbbsbench::pointT A = triangulation.P[triangle[0]];
     pbbsbench::pointT B = triangulation.P[triangle[1]];
     pbbsbench::pointT C = triangulation.P[triangle[2]];
-    int32_t s = (A.x - C.x) * (x - C.y) - (A.y - C.y) * (x - C.x);
-    int32_t t = (B.x - A.x) * (y - A.y) - (B.y - A.y) * (x - A.x);
+    auto s = (A.x - C.x) * (x - C.y) - (A.y - C.y) * (x - C.x);
+    auto t = (B.x - A.x) * (y - A.y) - (B.y - A.y) * (x - A.x);
 
     if ((s < 0) != (t < 0) && s != 0 && t != 0) {
         return false;
     }
 
-    int32_t d = (C.x - B.x) * (y - B.y) - (C.y - B.y) * (x - B.x);
+    auto d = (C.x - B.x) * (y - B.y) - (C.y - B.y) * (x - B.x);
     return d == 0 || (d < 0) == (s + t <= 0);
 }
 

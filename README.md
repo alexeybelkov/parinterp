@@ -17,3 +17,5 @@ points = np.random.randint(low=0, high=1024, size=(512, 2))
 points = np.unique(points, axis=0)
 triangulation = delaunay(points)
 ```
+### Benchmarking       
+![](/benchmark/benchmark.jpg)
