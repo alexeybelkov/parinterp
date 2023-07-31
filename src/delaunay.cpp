@@ -413,6 +413,14 @@ PYBIND11_MODULE(pydelaunay, m) {
                  "Return index of triangle, containing point p, else return -1", py::arg("x"), py::arg("y"))
             .def_readonly("vertices", &Triangulation::vertices, "numpy array of vertices")
             .def_readonly("triangles", &Triangulation::triangles, "numpy array of triangles");
+
+    py::class_<BiLinearInterpolator>(m, "BiLinearInterpolator", "BiLinearInterpolator class")
+            .def(py::init<const py::array_t<int32_t, py::array::c_style | py::array::forcecast>&,
+                    const py::array_t<float, py::array::c_style | py::array::forcecast>&, float>())
+            .def("__call__", &BiLinearInterpolator::call)
+            .def_readonly("triangulation", &BiLinearInterpolator::triangulation)
+            .def_readonly("values", &BiLinearInterpolator::values)
+            .def_readonly("fill_value", &BiLinearInterpolator::fill_value);
 }
 
 int main() {}
