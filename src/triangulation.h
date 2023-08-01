@@ -7,6 +7,7 @@ class Triangulation {
 private:
     pbbsbench::triangles<pbbsbench::pointT> triangulation;
 public:
+    parlay::sequence<parlay::sequence<uint32_t>> adj_p2t;
     py::array_t<int32_t, py::array::c_style | py::array::forcecast> vertices;
     py::array_t<int32_t, py::array::c_style | py::array::forcecast> triangles;
     Triangulation() = default;
@@ -16,7 +17,7 @@ public:
     bool point_in_triangle(int32_t& x, int32_t& y, pbbsbench::tri& triangle);
     int32_t find_triangle(pbbsbench::pointT& p);
     int32_t find_triangle(int32_t& x, int32_t& y);
-
+    int32_t check_neighborhood(int32_t& pi, int32_t& x, int32_t& y);
 };
 
 Triangulation::Triangulation(pbbsbench::triangles<pbbsbench::pointT>& triangulation) {
@@ -37,6 +38,14 @@ Triangulation::Triangulation(pbbsbench::triangles<pbbsbench::pointT>& triangulat
         for (uint32_t j = 0; j < 3; ++j)
             flatten_triangles[3 * i + j] = triangulation.T[i][j];
     });
+
+    this -> adj_p2t = parlay::sequence<parlay::sequence<uint32_t>>(n);
+    for (uint32_t i = 0; i < m; ++i) {
+        for (uint32_t j = 0; j < 3; ++j)
+            this -> adj_p2t[triangulation.T[i][j]].push_back(i);
+    }
+
+
     this->vertices = {std::move(points_shape), std::move(points_strides), flatten_points.data()};
     this->triangles = {std::move(triangles_shape), std::move(triangles_strides), flatten_triangles.data()};
 }
@@ -87,6 +96,15 @@ int32_t Triangulation::find_triangle(pbbsbench::pointT& p) {
 int32_t Triangulation::find_triangle(int32_t& x, int32_t& y) {
     for (int32_t i = 0; i < triangulation.T.size(); ++i) {
         if (point_in_triangle(x, y, triangulation.T[i])) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int32_t Triangulation::check_neighborhood(int32_t &pi, int32_t &x, int32_t &y) {
+    for (auto& i : this -> adj_p2t[pi]) {
+        if (this ->point_in_triangle(x, y, this -> triangulation.T[i])) {
             return i;
         }
     }

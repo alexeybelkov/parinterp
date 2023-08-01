@@ -60,8 +60,8 @@ class CMakeBuild(build_ext):
 setup(
     name='pydelaunay',
     version='0.1',
-    packages=find_packages('src'),
-    package_dir={'':'src'},
+    packages=find_packages('python'),
+    package_dir={'':'.'},
     ext_modules=[CMakeExtension('src')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False

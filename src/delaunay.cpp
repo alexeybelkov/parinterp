@@ -416,11 +416,10 @@ PYBIND11_MODULE(pydelaunay, m) {
 
     py::class_<BiLinearInterpolator>(m, "BiLinearInterpolator", "BiLinearInterpolator class")
             .def(py::init<const py::array_t<int32_t, py::array::c_style | py::array::forcecast>&,
-                    const py::array_t<float, py::array::c_style | py::array::forcecast>&, float>())
+                    const py::array_t<float, py::array::c_style | py::array::forcecast>&>())
             .def("__call__", &BiLinearInterpolator::call)
             .def_readonly("triangulation", &BiLinearInterpolator::triangulation)
-            .def_readonly("values", &BiLinearInterpolator::values)
-            .def_readonly("fill_value", &BiLinearInterpolator::fill_value);
+            .def_readonly("values", &BiLinearInterpolator::values);
 }
 
 int main() {}
