@@ -80,8 +80,8 @@ py::array_t<float, py::array::c_style | py::array::forcecast> BiLinearInterpolat
             interpolated[i] = bilinear_barycentric_interpolation(x, y, t);
     });
 
-    std::vector<int64_t> shape = {n, 2};
-    std::vector<int64_t> strides = {sizeof(float), sizeof(float)};
+    std::vector<int64_t> shape = {n};
+    std::vector<int64_t> strides = {sizeof(float)};
 
     return {std::move(shape), std::move(strides), interpolated.data()};
 }

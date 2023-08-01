@@ -6,3 +6,4 @@ notebooks
 *.egg-info
 #benchmark/*.py
 benchmark/*.json
+__pycache__

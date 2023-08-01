@@ -60,8 +60,9 @@ class CMakeBuild(build_ext):
 setup(
     name='pydelaunay',
     version='0.1',
-    packages=find_packages('python'),
-    package_dir={'':'.'},
+    packages=find_packages(include=("interp",)),
+    # package_dir={'':'.'},
+    include_package_data=True,
     ext_modules=[CMakeExtension('src')],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False
