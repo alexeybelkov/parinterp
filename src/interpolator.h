@@ -12,6 +12,7 @@ class BiLinearInterpolator {
 public:
     Triangulation triangulation;
     py::array_t<float, py::array::c_style | py::array::forcecast> values;
+    py::array_t<float, py::array::c_style | py::array::forcecast> barycenters;
     BiLinearInterpolator() = default;
     BiLinearInterpolator(const py::array_t<int32_t, py::array::c_style | py::array::forcecast>& points,
                          const py::array_t<float, py::array::c_style | py::array::forcecast>& values);
@@ -25,22 +26,49 @@ BiLinearInterpolator::BiLinearInterpolator(const py::array_t<int32_t, py::array:
                                            const py::array_t<float, py::array::c_style | py::array::forcecast>& values) {
     this -> values = values;
     this -> triangulation = pbbsbench::numpy_delaunay(points);
+
+    uint32_t m = this -> triangulation.triangulation.T.size();
+
+    parlay::sequence<float> barycenters_(2 * m);
+
+    parlay::parallel_for(0, m, [&](uint32_t t) {
+        int32_t i = this -> triangulation.triangulation.T[t][0];
+        int32_t j = this -> triangulation.triangulation.T[t][1];
+        int32_t k = this -> triangulation.triangulation.T[t][2];
+
+        int32_t x1 = triangulation.triangulation.P[i].x;
+        int32_t y1 = triangulation.triangulation.P[i].y;
+        int32_t x2 = triangulation.triangulation.P[j].x;
+        int32_t y2 = triangulation.triangulation.P[j].y;
+        int32_t x3 = triangulation.triangulation.P[k].x;
+        int32_t y3 = triangulation.triangulation.P[k].y;
+
+        float x = float(x1 + x2 + x3) / 3.0;
+        float y = float(y1 + y2 + y3) / 3.0;
+        barycenters_[2 * t] = x;
+        barycenters_[2 * t + 1] = y;
+    });
+
+    std::vector<int64_t> shape = {m, 2};
+    std::vector<int64_t> strides = {sizeof(float) * 2, sizeof(float)};
+    this -> barycenters = {std::move(shape), std::move(strides), barycenters_.data()};
+
 }
 
 float BiLinearInterpolator::bilinear_barycentric_interpolation(int32_t &x, int32_t &y, int32_t& t) {
 
     // https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Vertex_approach
 
-    int32_t i = this -> triangulation.triangles.at(t, 0);
-    int32_t j = this -> triangulation.triangles.at(t, 1);
-    int32_t k = this -> triangulation.triangles.at(t, 2);
+    int32_t i = this -> triangulation.triangulation.T[t][0];
+    int32_t j = this -> triangulation.triangulation.T[t][1];
+    int32_t k = this -> triangulation.triangulation.T[t][2];
 
-    int32_t x1 = triangulation.vertices.at(i, 0);
-    int32_t y1 = triangulation.vertices.at(i, 1);
-    int32_t x2 = triangulation.vertices.at(j, 0);
-    int32_t y2 = triangulation.vertices.at(j, 1);
-    int32_t x3 = triangulation.vertices.at(k, 0);
-    int32_t y3 = triangulation.vertices.at(k, 1);
+    int32_t x1 = triangulation.triangulation.P[i].x;
+    int32_t y1 = triangulation.triangulation.P[i].y;
+    int32_t x2 = triangulation.triangulation.P[j].x;
+    int32_t y2 = triangulation.triangulation.P[j].y;
+    int32_t x3 = triangulation.triangulation.P[k].x;
+    int32_t y3 = triangulation.triangulation.P[k].y;
 
     int32_t dx32 = x3 - x2;
     int32_t dx13 = x1 - x3;
@@ -69,15 +97,16 @@ py::array_t<float, py::array::c_style | py::array::forcecast> BiLinearInterpolat
                                                                                          const py::array_t<int32_t, py::array::c_style | py::array::forcecast>& neighbors,
                                                                                          float fill_value) {
     uint32_t n = points.shape()[0];
-    std::vector<float> interpolated(n, fill_value);
+    parlay::sequence<float> interpolated(n, fill_value);
 
     parlay::parallel_for(0, n, [&](uint32_t i) {
         int32_t x = points.at(i, 0);
         int32_t y = points.at(i, 1);
         int32_t neighbor = neighbors.at(i);
-        int32_t t = this -> triangulation.check_neighborhood(neighbor, x, y);
-        if (t != -1)
-            interpolated[i] = bilinear_barycentric_interpolation(x, y, t);
+        auto tri = this -> triangulation.triangulation.T[neighbor];
+        bool t = this -> triangulation.point_in_triangle(x, y, tri);
+        if (t)
+            interpolated[i] = bilinear_barycentric_interpolation(x, y, neighbor);
     });
 
     std::vector<int64_t> shape = {n};

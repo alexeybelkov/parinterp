@@ -419,7 +419,8 @@ PYBIND11_MODULE(pydelaunay, m) {
                     const py::array_t<float, py::array::c_style | py::array::forcecast>&>())
             .def("__call__", &BiLinearInterpolator::call)
             .def_readonly("triangulation", &BiLinearInterpolator::triangulation)
-            .def_readonly("values", &BiLinearInterpolator::values);
+            .def_readonly("values", &BiLinearInterpolator::values)
+            .def_readonly("barycenters", &BiLinearInterpolator::barycenters);
 }
 
 int main() {}

@@ -4,10 +4,9 @@
 #endif //PARDELAUNAY_TRIANGULATION_H
 
 class Triangulation {
-private:
-    pbbsbench::triangles<pbbsbench::pointT> triangulation;
 public:
     parlay::sequence<parlay::sequence<uint32_t>> adj_p2t;
+    pbbsbench::triangles<pbbsbench::pointT> triangulation;
     py::array_t<int32_t, py::array::c_style | py::array::forcecast> vertices;
     py::array_t<int32_t, py::array::c_style | py::array::forcecast> triangles;
     Triangulation() = default;

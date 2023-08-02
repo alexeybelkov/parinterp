@@ -8,6 +8,7 @@ from scipy.spatial import Delaunay
 from tqdm import tqdm
 from interp.interpolator import Linear2DInterpolator
 from scipy.interpolate import griddata
+import os
 
 path = load_json('benchmark/path.json')
 
@@ -18,6 +19,8 @@ for key, p in path.items():
 
 times = {'pydelaunay': [], 'scipy': []}
 sizes = []
+
+os.environ['PARLAY_NUM_THREADS'] = '8'
 
 for k, x in tqdm(arrays.items()):
     points = np.transpose((~np.isnan(x)).nonzero())
