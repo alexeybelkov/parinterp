@@ -3,10 +3,16 @@
 
 #endif //PARDELAUNAY_TRIANGULATION_H
 
+uint32_t bijection(uint32_t& a, uint32_t& b) {
+    return (a + b) * (a + b + 1) / 2 + b; // Bijection: NxN -> N
+}
+
 class Triangulation {
 public:
-    parlay::sequence<parlay::sequence<uint32_t>> adj_p2t;
+//    parlay::sequence<std::pair<int32_t, int32_t>> edges;
     pbbsbench::triangles<pbbsbench::pointT> triangulation;
+    parlay::sequence<parlay::sequence<uint32_t>> adj_p2t;
+    std::unordered_map<uint32_t, parlay::sequence<uint32_t>> adj_e2t;
     py::array_t<int32_t, py::array::c_style | py::array::forcecast> vertices;
     py::array_t<int32_t, py::array::c_style | py::array::forcecast> triangles;
     Triangulation() = default;
@@ -14,9 +20,10 @@ public:
     ~Triangulation();
     bool point_in_triangle(pbbsbench::pointT& p, pbbsbench::tri& triangle);
     bool point_in_triangle(int32_t& x, int32_t& y, pbbsbench::tri& triangle);
+    int32_t check_adj_triangles(int32_t& x, int32_t& y, uint32_t& t);
     int32_t find_triangle(pbbsbench::pointT& p);
     int32_t find_triangle(int32_t& x, int32_t& y);
-    int32_t check_neighborhood(int32_t& pi, int32_t& x, int32_t& y);
+    int32_t check_neighborhood(int32_t& x, int32_t& y, int32_t& pi);
 };
 
 Triangulation::Triangulation(pbbsbench::triangles<pbbsbench::pointT>& triangulation) {
@@ -29,19 +36,37 @@ Triangulation::Triangulation(pbbsbench::triangles<pbbsbench::pointT>& triangulat
     std::vector<int64_t> triangles_strides = {sizeof(int32_t) * 3, sizeof(int32_t)};
     std::vector<int32_t> flatten_points(2 * n);
     std::vector<int32_t> flatten_triangles(3 * m);
+
     parlay::parallel_for(0, n, [&](uint32_t i) {
         flatten_points[2 * i] = triangulation.P[i].x;
         flatten_points[2 * i + 1] = triangulation.P[i].y;
         });
+
     parlay::parallel_for(0, m, [&](uint32_t i) {
         for (uint32_t j = 0; j < 3; ++j)
             flatten_triangles[3 * i + j] = triangulation.T[i][j];
     });
 
     this -> adj_p2t = parlay::sequence<parlay::sequence<uint32_t>>(n);
+
     for (uint32_t i = 0; i < m; ++i) {
-        for (uint32_t j = 0; j < 3; ++j)
-            this -> adj_p2t[triangulation.T[i][j]].push_back(i);
+        for (int32_t j = 0; j < 3; ++j) {
+            uint32_t a = triangulation.T[i][j];
+            uint32_t b = triangulation.T[i][(j + 1) % 3];
+
+            adj_p2t[a].push_back(i);
+
+            if (a > b)
+                std::swap(a, b);
+            uint32_t e = bijection(a, b);
+            if (adj_e2t.find(e) == adj_e2t.end()) {
+                parlay::sequence<uint32_t> s(1, i);
+                adj_e2t.insert({e, s});
+            }
+            else {
+                adj_e2t[e].push_back(i);
+            }
+        }
     }
 
 
@@ -101,11 +126,26 @@ int32_t Triangulation::find_triangle(int32_t& x, int32_t& y) {
     return -1;
 }
 
-int32_t Triangulation::check_neighborhood(int32_t &pi, int32_t &x, int32_t &y) {
-    for (auto& i : this -> adj_p2t[pi]) {
-        if (this ->point_in_triangle(x, y, this -> triangulation.T[i])) {
-            return i;
+int32_t Triangulation::check_adj_triangles(int32_t& x, int32_t& y, uint32_t& t) {
+    for (uint32_t i = 0; i < 3; ++i) {
+        uint32_t a = triangulation.T[t][i];
+        uint32_t b = triangulation.T[t][(i + 1) % 3];
+        if (a > b)
+            std::swap(a, b);
+
+        for (auto& tt : adj_e2t[bijection(a, b)]) {
+            if (tt != t and point_in_triangle(x, y, triangulation.T[tt]))
+                return tt;
         }
+    }
+    return -1;
+}
+
+int32_t Triangulation::check_neighborhood(int32_t& x, int32_t& y, int32_t& pi) {
+    for (auto& i : this -> adj_p2t[pi]) {   // A bit of overhead :retard:
+        auto j = check_adj_triangles(x, y, i);
+        if (j != -1)
+            return j;
     }
     return -1;
 }
