@@ -18,12 +18,13 @@ public:
     Triangulation() = default;
     Triangulation(pbbsbench::triangles<pbbsbench::pointT>& triangulation);
     ~Triangulation();
-    bool point_in_triangle(pbbsbench::pointT& p, pbbsbench::tri& triangle);
-    bool point_in_triangle(int32_t& x, int32_t& y, pbbsbench::tri& triangle);
-    int32_t check_adj_triangles(int32_t& x, int32_t& y, uint32_t& t);
+    bool point_in_triangle(parlay::sequence<pair<double, uint32_t>>& bar_coords);
+    bool point_in_triangle(int32_t x, int32_t y, pbbsbench::tri& triangle);
+    int32_t check_adj_triangles(int32_t x, int32_t y, uint32_t t);
     int32_t find_triangle(pbbsbench::pointT& p);
-    int32_t find_triangle(int32_t& x, int32_t& y);
-    int32_t check_neighborhood(int32_t& x, int32_t& y, int32_t& pi);
+    int32_t find_triangle(int32_t x, int32_t y);
+    int32_t check_neighborhood(int32_t x, int32_t y, int32_t pi);
+    parlay::sequence<std::pair<double, uint32_t>> barycentric_coordinates(int32_t x, int32_t y, uint32_t t);
 };
 
 Triangulation::Triangulation(pbbsbench::triangles<pbbsbench::pointT>& triangulation) {
@@ -76,24 +77,15 @@ Triangulation::Triangulation(pbbsbench::triangles<pbbsbench::pointT>& triangulat
 
 Triangulation::~Triangulation() {
     this -> triangulation.P.clear(); // ???
+    this -> adj_p2t.clear();
+    this -> adj_e2t.clear();
 }
 
-bool Triangulation::point_in_triangle(pbbsbench::pointT& p, pbbsbench::tri& triangle) {
-    pbbsbench::pointT A = triangulation.P[triangle[0]];
-    pbbsbench::pointT B = triangulation.P[triangle[1]];
-    pbbsbench::pointT C = triangulation.P[triangle[2]];
-    auto s = (A.x - C.x) * (p.x - C.y) - (A.y - C.y) * (p.x - C.x);
-    auto t = (B.x - A.x) * (p.y - A.y) - (B.y - A.y) * (p.x - A.x);
-
-    if ((s < 0) != (t < 0) && s != 0 && t != 0) {
-        return false;
-    }
-
-    auto d = (C.x - B.x) * (p.y - B.y) - (C.y - B.y) * (p.x - B.x);
-    return d == 0 || (d < 0) == (s + t <= 0);
+bool Triangulation::point_in_triangle(parlay::sequence<pair<double, uint32_t>>& bar_coords) {
+    return bar_coords[0].first > 0 and bar_coords[1].first > 0 and bar_coords[2].first > 0;
 }
 
-bool Triangulation::point_in_triangle(int32_t& x, int32_t& y, pbbsbench::tri& triangle) {
+bool Triangulation::point_in_triangle(int32_t x, int32_t y, pbbsbench::tri& triangle) {
     pbbsbench::pointT A = triangulation.P[triangle[0]];
     pbbsbench::pointT B = triangulation.P[triangle[1]];
     pbbsbench::pointT C = triangulation.P[triangle[2]];
@@ -108,16 +100,16 @@ bool Triangulation::point_in_triangle(int32_t& x, int32_t& y, pbbsbench::tri& tr
     return d == 0 || (d < 0) == (s + t <= 0);
 }
 
-int32_t Triangulation::find_triangle(pbbsbench::pointT& p) {
-    for (int32_t i = 0; i < triangulation.T.size(); ++i) {
-        if (point_in_triangle(p, triangulation.T[i])) {
-            return i;
-        }
-    }
-    return -1;
-}
+//int32_t Triangulation::find_triangle(pbbsbench::pointT& p) {
+//    for (int32_t i = 0; i < triangulation.T.size(); ++i) {
+//        if (point_in_triangle(p, triangulation.T[i])) {
+//            return i;
+//        }
+//    }
+//    return -1;
+//}
 
-int32_t Triangulation::find_triangle(int32_t& x, int32_t& y) {
+int32_t Triangulation::find_triangle(int32_t x, int32_t y) {
     for (int32_t i = 0; i < triangulation.T.size(); ++i) {
         if (point_in_triangle(x, y, triangulation.T[i])) {
             return i;
@@ -126,26 +118,64 @@ int32_t Triangulation::find_triangle(int32_t& x, int32_t& y) {
     return -1;
 }
 
-int32_t Triangulation::check_adj_triangles(int32_t& x, int32_t& y, uint32_t& t) {
+int32_t Triangulation::check_adj_triangles(int32_t x, int32_t y, uint32_t t) {
     for (uint32_t i = 0; i < 3; ++i) {
         uint32_t a = triangulation.T[t][i];
         uint32_t b = triangulation.T[t][(i + 1) % 3];
         if (a > b)
             std::swap(a, b);
 
-        for (auto& tt : adj_e2t[bijection(a, b)]) {
-            if (tt != t and point_in_triangle(x, y, triangulation.T[tt]))
-                return tt;
+        uint32_t e = bijection(a, b);
+        for (auto& tt : adj_e2t[e]) {
+            if (tt != t) {
+                auto bar_coords = barycentric_coordinates(x, y, tt);
+                if (point_in_triangle(bar_coords))
+                    return tt;
+            }
         }
     }
     return -1;
 }
 
-int32_t Triangulation::check_neighborhood(int32_t& x, int32_t& y, int32_t& pi) {
-    for (auto& i : this -> adj_p2t[pi]) {   // A bit of overhead :retard:
-        auto j = check_adj_triangles(x, y, i);
+int32_t Triangulation::check_neighborhood(int32_t x, int32_t y, int32_t pi) {
+    for (auto& t : this -> adj_p2t[pi]) {   // A bit of overhead :retard:
+        auto j = check_adj_triangles(x, y, t);
         if (j != -1)
             return j;
     }
     return -1;
+}
+
+parlay::sequence<std::pair<double, uint32_t>> Triangulation::barycentric_coordinates(int32_t x, int32_t y, uint32_t t) {
+    // https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Vertex_approach
+
+    uint32_t i = triangulation.T[t][0];
+    uint32_t j = triangulation.T[t][1];
+    uint32_t k = triangulation.T[t][2];
+
+    int32_t x1 = triangulation.P[i].x;
+    int32_t y1 = triangulation.P[i].y;
+    int32_t x2 = triangulation.P[j].x;
+    int32_t y2 = triangulation.P[j].y;
+    int32_t x3 = triangulation.P[k].x;
+    int32_t y3 = triangulation.P[k].y;
+
+    int32_t dx32 = x3 - x2;
+    int32_t dx13 = x1 - x3;
+    int32_t dx21 = x2 - x1;
+
+    int32_t dy23 = y2 - y3;
+    int32_t dy31 = y3 - y1;
+    int32_t dy12 = y1 - y2;
+
+    int32_t dxy23 = x2*y3 - x3*y2;
+    int32_t dxy31 = x3*y1 - x1*y3;
+    int32_t dxy12 = x1*y2 - x2*y1;
+
+    double one_over_2area = 1.0 / double(dxy12 + dxy31 + dxy23);
+
+    auto lambda_1 = double(dxy23 + x * dy23 + y * dx32) * one_over_2area;
+    auto lambda_2 = double(dxy31 + x * dy31 + y * dx13) * one_over_2area;
+    auto lambda_3 = double(dxy12 + x * dy12 + y * dx21) * one_over_2area;
+    return {{lambda_1, i}, {lambda_2, j}, {lambda_3, k}};
 }

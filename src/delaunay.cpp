@@ -407,9 +407,9 @@ PYBIND11_MODULE(pydelaunay, m) {
     m.def("delaunay", &pbbsbench::numpy_delaunay);
     py::class_<Triangulation>(m, "Triangulation", "Triangulation class")
             .def(py::init<>(), "Default constructor, does nothing")
-            .def("find_triangle", static_cast<int32_t (Triangulation::*)(pbbsbench::pointT&)>(&Triangulation::find_triangle),
-                 "Return index of triangle, containing point p, else return -1", py::arg("p"))
-            .def("find_triangle", static_cast<int32_t (Triangulation::*)(int32_t&, int32_t&)>(&Triangulation::find_triangle),
+//            .def("find_triangle", static_cast<int32_t (Triangulation::*)(pbbsbench::pointT&)>(&Triangulation::find_triangle),
+//                 "Return index of triangle, containing point p, else return -1", py::arg("p"))
+            .def("find_triangle", static_cast<int32_t (Triangulation::*)(int32_t, int32_t)>(&Triangulation::find_triangle),
                  "Return index of triangle, containing point p, else return -1", py::arg("x"), py::arg("y"))
             .def_readonly("vertices", &Triangulation::vertices, "numpy array of vertices")
             .def_readonly("triangles", &Triangulation::triangles, "numpy array of triangles");

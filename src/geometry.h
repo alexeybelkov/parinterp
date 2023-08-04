@@ -427,9 +427,9 @@ struct ray {
   ray() {}
 };
 
-const double pi = 3.14159;
-constexpr double grad_on_rad = 180.0 / 3.14159;
-constexpr double rad_on_grad = 3.14159 / 180.0;
+const double pi = 3.1415926535; //3.14159;
+constexpr double grad_on_rad = 180.0 / 3.1415926535;
+constexpr double rad_on_grad = 3.1415926535 / 180.0;
 
 template<class coord>
 inline coord angle(point2d<coord> a, point2d<coord> b, point2d<coord> c) {
