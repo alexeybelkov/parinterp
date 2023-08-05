@@ -21,7 +21,5 @@ find_package(pybind11 CONFIG REQUIRED)
 
 pybind11_add_module(pydelaunay src/delaunay.cpp)
 add_executable(pardelaunay src/delaunay.cpp)
-#        src/interpolator.h)
-#        pargeo/as_numpy.h)
 
 target_link_libraries(pardelaunay ${PYTHON_LIBRARIES})
