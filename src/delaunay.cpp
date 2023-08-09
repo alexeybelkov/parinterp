@@ -211,12 +211,11 @@ void generate_boundary(sequence<pointT> const &P,
   double stretch = 10.0;
   double radius = stretch*size;
   pointT center = max_corner + (max_corner-min_corner)/2.0;
-  double pi = 3.14159;
-
+  constexpr double pi2 = 2.0 * 3.14159265359;
   // Generate the bounding points on a circle far outside the bounding box
   for (size_t i=0; i < boundary_size; i++) {
-    double x = radius * cos(2*pi*((float) i)/((float) boundary_size));
-    double y = radius * sin(2*pi*((float) i)/((float) boundary_size));
+    double x = radius * cos(pi2*((double) i)/((double) boundary_size));
+    double y = radius * sin(pi2*((double) i)/((double) boundary_size));
     pointT pt = center + vect(x,y);
     V[i+n] = vertex_t(pt, i + n);
   }
@@ -317,7 +316,7 @@ triangles<pointT> delaunay(const sequence<pointT> &P) {
 
   pargeo::timer t("delaunay", false);
   t.start();
-  size_t boundary_size = 10;
+  size_t boundary_size = 24;
   size_t n = P.size();
 
   // All vertices needed
@@ -361,37 +360,36 @@ triangles<pointT> delaunay(const sequence<pointT> &P) {
   if (CHECK) check_delaunay(Triangles, boundary_size);
 
   // just the three corner ids for each triangle
-  parlay::sequence<tri> result_triangles;
-//  parlay::parallel_for(0, num_triangles, [&] (uint32_t i) {
-//      vertex_t** vtx = Triangles[i].vtx;
-//      result_triangles[i] = {int32_t(vtx[0] -> id), int32_t(vtx[1] -> id), int32_t(vtx[2] -> id)};
-//      //result_triangles[i].
-//  });
+//  parlay::sequence<tri> result_triangles;
+    auto result_triangles = tabulate(num_triangles, [&] (size_t i) -> tri {
+        vertex_t** vtx = Triangles[i].vtx;
+        tri r = {(int) vtx[0]->id, (int) vtx[1]->id, (int) vtx[2]->id};
+        return r;});
 
-    for (auto& triangle : Triangles) {
-        vertex_t** vtx = triangle.vtx;
-        int32_t a = vtx[0] -> id;
-        int32_t b = vtx[1] -> id;
-        int32_t c = vtx[2] -> id;
-        if (a >= P.size() or b >= P.size() or c >= P.size())
-            continue;
-        result_triangles.push_back({a, b, c}); // amortized complexity O(1) ?
-    }
+//    for (auto& triangle : Triangles) {
+//        vertex_t** vtx = triangle.vtx;
+//        int32_t a = vtx[0] -> id;
+//        int32_t b = vtx[1] -> id;
+//        int32_t c = vtx[2] -> id;
+//        if (a >= P.size() or b >= P.size() or c >= P.size())
+//            continue;
+//        result_triangles.push_back({a, b, c}); // amortized complexity O(1) ?
+//    }
 
   // just the points, including the added boundary points
-//  auto result_points = tabulate(num_vertices, [&] (size_t i) {
-//    pointT r = (i < n) ? P[i] : Vertices[i].pt;
-//    //cout << r[0] << ", " << r[1] << endl;
-//    return r;});
+  auto result_points = tabulate(num_vertices, [&] (size_t i) {
+    pointT r = (i < n) ? P[i] : Vertices[i].pt;
+    //cout << r[0] << ", " << r[1] << endl;
+    return r;});
 #ifndef SILENT
   t.next("generate output");
 #endif
-    return triangles<pointT>(P, result_triangles);
+    return triangles<pointT>(result_points, result_triangles);
 }
 
 // by alexeybelkov
 
-Triangulation numpy_delaunay(const py::array_t<int32_t, py::array::c_style | py::array::forcecast>& array) {
+Triangulation numpy_delaunay(const py::array_t<double, py::array::c_style | py::array::forcecast>& array) {
     uint32_t n = array.shape()[0];
     parlay::sequence<pbbsbench::pointT> P(n);
     parlay::parallel_for (0, n, [&] (uint32_t i) {
@@ -409,7 +407,7 @@ PYBIND11_MODULE(pydelaunay, m) {
             .def(py::init<>(), "Default constructor, does nothing")
 //            .def("find_triangle", static_cast<int32_t (Triangulation::*)(pbbsbench::pointT&)>(&Triangulation::find_triangle),
 //                 "Return index of triangle, containing point p, else return -1", py::arg("p"))
-            .def("find_triangle", static_cast<int32_t (Triangulation::*)(int32_t, int32_t)>(&Triangulation::find_triangle),
+            .def("find_triangle", static_cast<int32_t (Triangulation::*)(double, double)>(&Triangulation::find_triangle),
                  "Return index of triangle, containing point p, else return -1", py::arg("x"), py::arg("y"))
             .def_readonly("vertices", &Triangulation::vertices, "numpy array of vertices")
             .def_readonly("triangles", &Triangulation::triangles, "numpy array of triangles");
@@ -419,8 +417,7 @@ PYBIND11_MODULE(pydelaunay, m) {
                     const py::array_t<float, py::array::c_style | py::array::forcecast>&>())
             .def("__call__", &BiLinearInterpolator::call)
             .def_readonly("triangulation", &BiLinearInterpolator::triangulation)
-            .def_readonly("values", &BiLinearInterpolator::values)
-            .def_readonly("barycenters", &BiLinearInterpolator::barycenters);
+            .def_readonly("values", &BiLinearInterpolator::values);
 }
 
 int main() {}

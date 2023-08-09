@@ -15,5 +15,5 @@ namespace pbbsbench {
   using pointT = point2d<coord>;
 
   triangles<pointT> delaunay(const parlay::sequence<pointT>& P);
-  Triangulation numpy_delaunay(const py::array_t<int32_t, py::array::c_style | py::array::forcecast>& array);
+  Triangulation numpy_delaunay(const py::array_t<double, py::array::c_style | py::array::forcecast>& array);
 }

@@ -13,29 +13,29 @@ public:
     pbbsbench::triangles<pbbsbench::pointT> triangulation;
     parlay::sequence<parlay::sequence<uint32_t>> adj_p2t;
     std::unordered_map<uint32_t, parlay::sequence<uint32_t>> adj_e2t;
-    py::array_t<int32_t, py::array::c_style | py::array::forcecast> vertices;
+    py::array_t<double, py::array::c_style | py::array::forcecast> vertices;
     py::array_t<int32_t, py::array::c_style | py::array::forcecast> triangles;
     Triangulation() = default;
     Triangulation(pbbsbench::triangles<pbbsbench::pointT>& triangulation);
     ~Triangulation();
     bool point_in_triangle(parlay::sequence<pair<double, uint32_t>>& bar_coords);
     bool point_in_triangle(int32_t x, int32_t y, pbbsbench::tri& triangle);
-    int32_t check_adj_triangles(int32_t x, int32_t y, uint32_t t);
-    int32_t find_triangle(pbbsbench::pointT& p);
-    int32_t find_triangle(int32_t x, int32_t y);
-    int32_t check_neighborhood(int32_t x, int32_t y, int32_t pi);
-    parlay::sequence<std::pair<double, uint32_t>> barycentric_coordinates(int32_t x, int32_t y, uint32_t t);
+    int32_t check_adj_triangles(double x, double y, uint32_t t);
+    //int32_t find_triangle(pbbsbench::pointT& p);
+    int32_t find_triangle(double x, double y);
+    int32_t check_neighborhood(double x, double y, int32_t pi);
+    parlay::sequence<std::pair<double, uint32_t>> barycentric_coordinates(double x, double y, uint32_t t);
 };
 
 Triangulation::Triangulation(pbbsbench::triangles<pbbsbench::pointT>& triangulation) {
     this -> triangulation = triangulation;
-    uint32_t n = triangulation.P.size();
-    uint32_t m = triangulation.T.size();
+    uint32_t n = triangulation.numPoints();
+    uint32_t m = triangulation.numTriangles();
     std::vector<int64_t> points_shape = {long(triangulation.P.size()), 2};
     std::vector<int64_t> triangles_shape = {long(triangulation.T.size()), 3};
-    std::vector<int64_t> points_strides = {sizeof(int32_t) * 2, sizeof(int32_t)};
+    std::vector<int64_t> points_strides = {sizeof(double) * 2, sizeof(double)};
     std::vector<int64_t> triangles_strides = {sizeof(int32_t) * 3, sizeof(int32_t)};
-    std::vector<int32_t> flatten_points(2 * n);
+    std::vector<double> flatten_points(2 * n);
     std::vector<int32_t> flatten_triangles(3 * m);
 
     parlay::parallel_for(0, n, [&](uint32_t i) {
@@ -82,7 +82,14 @@ Triangulation::~Triangulation() {
 }
 
 bool Triangulation::point_in_triangle(parlay::sequence<pair<double, uint32_t>>& bar_coords) {
-    return bar_coords[0].first > 0 and bar_coords[1].first > 0 and bar_coords[2].first > 0;
+    auto r1 = bar_coords[0].first;
+    auto r2 = bar_coords[1].first;
+    auto r3 = bar_coords[2].first;
+    if ((r1 > 0.0 && r1 < 1.0) and (r2 > 0.0 && r2 < 1.0) and (r3 > 0.0 && r3 < 1.0))
+        return true;
+    bool mb_on_edge = ((r1 >= 0.0 && r1 <= 1.0) and (r2 >= 0.0 && r2 <= 1.0) and (r3 >= 0.0 && r3 <= 1.0));
+    return mb_on_edge and (r1 == 0.0 or r2 == 0.0 or r3 == 0.0);
+
 }
 
 bool Triangulation::point_in_triangle(int32_t x, int32_t y, pbbsbench::tri& triangle) {
@@ -109,16 +116,29 @@ bool Triangulation::point_in_triangle(int32_t x, int32_t y, pbbsbench::tri& tria
 //    return -1;
 //}
 
-int32_t Triangulation::find_triangle(int32_t x, int32_t y) {
-    for (int32_t i = 0; i < triangulation.T.size(); ++i) {
-        if (point_in_triangle(x, y, triangulation.T[i])) {
-            return i;
+int32_t Triangulation::find_triangle(double x, double y) {
+//    for (int32_t i = 0; i < triangulation.T.size(); ++i) {
+//        if (point_in_triangle(x, y, triangulation.T[i])) {
+//            return i;
+//        }
+//    }
+    auto min_d = std::numeric_limits<int64_t>::max();
+    uint32_t j = 0;
+    for (uint32_t i = 0; i < triangulation.numPoints(); ++i) {
+        auto p = triangulation.P[i];
+        double dx = (p.x - x);
+        double dy = (p.y - y);
+        double d = dx * dx + dy * dy;
+        if (min_d > d) {
+            min_d = d;
+            j = i;
         }
     }
-    return -1;
+
+    return check_neighborhood(x, y, int32_t(j));
 }
 
-int32_t Triangulation::check_adj_triangles(int32_t x, int32_t y, uint32_t t) {
+int32_t Triangulation::check_adj_triangles(double x, double y, uint32_t t) {
     for (uint32_t i = 0; i < 3; ++i) {
         uint32_t a = triangulation.T[t][i];
         uint32_t b = triangulation.T[t][(i + 1) % 3];
@@ -129,15 +149,17 @@ int32_t Triangulation::check_adj_triangles(int32_t x, int32_t y, uint32_t t) {
         for (auto& tt : adj_e2t[e]) {
             if (tt != t) {
                 auto bar_coords = barycentric_coordinates(x, y, tt);
-                if (point_in_triangle(bar_coords))
+//                std::cout << bar_coords[0].first << ' ' << bar_coords[1].first << ' ' << bar_coords[2].first << std::endl;
+                if (point_in_triangle(bar_coords)) {
                     return tt;
+                }
             }
         }
     }
     return -1;
 }
 
-int32_t Triangulation::check_neighborhood(int32_t x, int32_t y, int32_t pi) {
+int32_t Triangulation::check_neighborhood(double x, double y, int32_t pi) {
     for (auto& t : this -> adj_p2t[pi]) {   // A bit of overhead :retard:
         auto j = check_adj_triangles(x, y, t);
         if (j != -1)
@@ -146,31 +168,31 @@ int32_t Triangulation::check_neighborhood(int32_t x, int32_t y, int32_t pi) {
     return -1;
 }
 
-parlay::sequence<std::pair<double, uint32_t>> Triangulation::barycentric_coordinates(int32_t x, int32_t y, uint32_t t) {
+parlay::sequence<std::pair<double, uint32_t>> Triangulation::barycentric_coordinates(double x, double y, uint32_t t) {
     // https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Vertex_approach
 
     uint32_t i = triangulation.T[t][0];
     uint32_t j = triangulation.T[t][1];
     uint32_t k = triangulation.T[t][2];
 
-    int32_t x1 = triangulation.P[i].x;
-    int32_t y1 = triangulation.P[i].y;
-    int32_t x2 = triangulation.P[j].x;
-    int32_t y2 = triangulation.P[j].y;
-    int32_t x3 = triangulation.P[k].x;
-    int32_t y3 = triangulation.P[k].y;
+    double x1 = triangulation.P[i].x;
+    double x2 = triangulation.P[j].x;
+    double y1 = triangulation.P[i].y;
+    double y2 = triangulation.P[j].y;
+    double x3 = triangulation.P[k].x;
+    double y3 = triangulation.P[k].y;
 
-    int32_t dx32 = x3 - x2;
-    int32_t dx13 = x1 - x3;
-    int32_t dx21 = x2 - x1;
+    double dx32 = x3 - x2;
+    double dx13 = x1 - x3;
+    double dx21 = x2 - x1;
 
-    int32_t dy23 = y2 - y3;
-    int32_t dy31 = y3 - y1;
-    int32_t dy12 = y1 - y2;
+    double dy23 = y2 - y3;
+    double dy31 = y3 - y1;
+    double dy12 = y1 - y2;
 
-    int32_t dxy23 = x2*y3 - x3*y2;
-    int32_t dxy31 = x3*y1 - x1*y3;
-    int32_t dxy12 = x1*y2 - x2*y1;
+    double dxy23 = x2*y3 - x3*y2;
+    double dxy31 = x3*y1 - x1*y3;
+    double dxy12 = x1*y2 - x2*y1;
 
     double one_over_2area = 1.0 / double(dxy12 + dxy31 + dxy23);
 
