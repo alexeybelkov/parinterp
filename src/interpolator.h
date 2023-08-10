@@ -20,6 +20,15 @@ public:
     py::array_t<float, py::array::c_style | py::array::forcecast> call(const py::array_t<double, py::array::c_style | py::array::forcecast>& points,
                                                                        const py::array_t<int32_t, py::array::c_style | py::array::forcecast>& neighbors,
                                                                        float fill_value = 0.0);
+    void print_bar_coords(double x, double y, uint32_t t) {
+        auto bar_coords = this -> triangulation.barycentric_coordinates(x, y, t);
+        for (auto& b: bar_coords) {
+            auto r1 = b.first;
+            auto i = b.second;
+            auto f1 = i < triangulation.triangulation.numPoints() - triangulation.boundary_size ? values.at(i) : 0.0;
+            std::cout << r1 << ' ' << i << ' ' << f1 << '\n';
+        }
+    }
 };
 
 BiLinearInterpolator::BiLinearInterpolator(const py::array_t<double, py::array::c_style | py::array::forcecast>& points,
@@ -59,7 +68,7 @@ double BiLinearInterpolator::bilinear_barycentric_interpolation(int32_t t, doubl
     uint32_t i = bar_coords[0].second;
     uint32_t j = bar_coords[0].second;
     uint32_t k = bar_coords[0].second;
-    uint32_t n = this -> triangulation.triangulation.numPoints() - 24;
+    uint32_t n = this -> triangulation.triangulation.numPoints() - this -> triangulation.boundary_size;
     double f1 = i < n ? this -> values.at(i) : fill_value;
     double f2 = j < n ? this -> values.at(j) : fill_value;
     double f3 = k < n ? this -> values.at(k) : fill_value;

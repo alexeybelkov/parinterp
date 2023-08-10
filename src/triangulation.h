@@ -10,13 +10,14 @@ uint32_t bijection(uint32_t& a, uint32_t& b) {
 class Triangulation {
 public:
 //    parlay::sequence<std::pair<int32_t, int32_t>> edges;
+    size_t boundary_size;
     pbbsbench::triangles<pbbsbench::pointT> triangulation;
     parlay::sequence<parlay::sequence<uint32_t>> adj_p2t;
     std::unordered_map<uint32_t, parlay::sequence<uint32_t>> adj_e2t;
     py::array_t<double, py::array::c_style | py::array::forcecast> vertices;
     py::array_t<int32_t, py::array::c_style | py::array::forcecast> triangles;
     Triangulation() = default;
-    Triangulation(pbbsbench::triangles<pbbsbench::pointT>& triangulation);
+    Triangulation(pbbsbench::triangles<pbbsbench::pointT>& triangulation, size_t boundary_size);
     ~Triangulation();
     bool point_in_triangle(parlay::sequence<pair<double, uint32_t>>& bar_coords);
     bool point_in_triangle(int32_t x, int32_t y, pbbsbench::tri& triangle);
@@ -27,7 +28,8 @@ public:
     parlay::sequence<std::pair<double, uint32_t>> barycentric_coordinates(double x, double y, uint32_t t);
 };
 
-Triangulation::Triangulation(pbbsbench::triangles<pbbsbench::pointT>& triangulation) {
+Triangulation::Triangulation(pbbsbench::triangles<pbbsbench::pointT>& triangulation, size_t boundary_size) {
+    this -> boundary_size = boundary_size;
     this -> triangulation = triangulation;
     uint32_t n = triangulation.numPoints();
     uint32_t m = triangulation.numTriangles();
@@ -122,18 +124,29 @@ int32_t Triangulation::find_triangle(double x, double y) {
 //            return i;
 //        }
 //    }
-    auto min_d = std::numeric_limits<int64_t>::max();
-    uint32_t j = 0;
-    for (uint32_t i = 0; i < triangulation.numPoints(); ++i) {
-        auto p = triangulation.P[i];
-        double dx = (p.x - x);
-        double dy = (p.y - y);
-        double d = dx * dx + dy * dy;
-        if (min_d > d) {
-            min_d = d;
-            j = i;
-        }
-    }
+//    auto min_d = std::numeric_limits<int64_t>::max();
+//    uint32_t j = 0;
+    auto minelem = parlay::min_element(triangulation.P, [&](pbbsbench::pointT a, pbbsbench::pointT b) {
+        auto dax = (a.x - x);
+        auto day = (a.y - y);
+        auto da = dax*dax + day*day;
+        auto dbx = (b.x - x);
+        auto dby = (b.y - y);
+        auto db = dbx*dbx + dby*dby;
+        return da < db;
+    });
+//    for (uint32_t i = 0; i < triangulation.numPoints(); ++i) {
+//        auto p = triangulation.P[i];
+//        double dx = (p.x - x);
+//        double dy = (p.y - y);
+//        double d = dx * dx + dy * dy;
+//        if (min_d > d) {
+//            min_d = d;
+//            j = i;
+//        }
+//    }
+
+    auto j = minelem - triangulation.P.begin();
 
     return check_neighborhood(x, y, int32_t(j));
 }

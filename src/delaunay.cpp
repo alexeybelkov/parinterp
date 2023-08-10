@@ -202,13 +202,15 @@ void generate_boundary(sequence<pointT> const &P,
 		       sequence<triang_t> &T) {
 
   size_t n = P.size();
+
   auto min = [] (pointT x, pointT y) { return x.minCoords(y);};
   auto max = [] (pointT x, pointT y) { return x.maxCoords(y);};
   pointT identity = P[0];
   pointT min_corner = reduce(P, make_monoid(min, identity));
   pointT max_corner = reduce(P, make_monoid(max, identity));
+
   double size = (max_corner-min_corner).Length();
-  double stretch = 10.0;
+  double stretch = 2.0;
   double radius = stretch*size;
   pointT center = max_corner + (max_corner-min_corner)/2.0;
   constexpr double pi2 = 2.0 * 3.14159265359;
@@ -219,6 +221,8 @@ void generate_boundary(sequence<pointT> const &P,
     pointT pt = center + vect(x,y);
     V[i+n] = vertex_t(pt, i + n);
   }
+
+
 
   // Fill with triangles (boundary_size - 2 total)
   simplex_t s = simplex_t(&V[0+n], &V[1+n], &V[2+n], &T[0 + 2*n]); 
@@ -312,11 +316,11 @@ void incrementally_add_points(sequence<vertex_t*> v, vertex_t* start) {
 //    DRIVER
 // *************************************************************
 
-triangles<pointT> delaunay(const sequence<pointT> &P) {
+std::pair<triangles<pointT>, size_t> delaunay(const sequence<pointT> &P) {
 
   pargeo::timer t("delaunay", false);
   t.start();
-  size_t boundary_size = 24;
+  size_t boundary_size = 8;
   size_t n = P.size();
 
   // All vertices needed
@@ -384,7 +388,7 @@ triangles<pointT> delaunay(const sequence<pointT> &P) {
 #ifndef SILENT
   t.next("generate output");
 #endif
-    return triangles<pointT>(result_points, result_triangles);
+    return {triangles<pointT>(result_points, result_triangles), boundary_size + 8};
 }
 
 // by alexeybelkov
@@ -395,8 +399,36 @@ Triangulation numpy_delaunay(const py::array_t<double, py::array::c_style | py::
     parlay::parallel_for (0, n, [&] (uint32_t i) {
         P[i] = pbbsbench::pointT(array.at(i, 0), array.at(i, 1));
     });
-    triangles<pointT> triangles = delaunay(P);
-    return {triangles};
+
+    auto x_limits = parlay::minmax_element(P, [](pointT p1, pointT p2) {return p1.x < p2.x;});
+    auto y_limits = parlay::minmax_element(P, [](pointT p1, pointT p2) {return p1.y < p2.y;});
+
+    constexpr double margin = 100.0;
+    constexpr double margin2 = 2.0 * margin;
+
+    auto min_x = x_limits.first -> x, max_x = x_limits.second -> x;
+    auto min_y = y_limits.first -> y, max_y = y_limits.second -> y;
+
+    pointT top_left(min_x - margin, min_y - margin);
+    pointT top_right(min_x - margin, max_y + margin);
+    pointT bot_left(max_x + margin, min_y - margin);
+    pointT bot_right(max_x + margin, max_y + margin);
+
+    auto mid_x = (min_x + max_x) / 2.0;
+    auto mid_y = (min_y + max_y) / 2.0;
+
+    pointT mid_left(mid_x, min_y - margin2);
+    pointT mid_top(min_x - margin2, mid_y);
+    pointT mid_right(mid_x, max_y + margin2);
+    pointT mid_bot(max_x + margin2, mid_y);
+
+    sequence<pointT> boundary_points = {top_left, top_right, bot_left, bot_right, mid_left, mid_top, mid_right, mid_bot};
+
+    for (auto p : boundary_points)
+        P.push_back(p);
+
+    auto result = delaunay(P);
+    return {result.first, result.second};
 }
 
 } // End name space pbbsbench
@@ -417,6 +449,7 @@ PYBIND11_MODULE(pydelaunay, m) {
                     const py::array_t<float, py::array::c_style | py::array::forcecast>&>())
             .def("__call__", &BiLinearInterpolator::call)
             .def_readonly("triangulation", &BiLinearInterpolator::triangulation)
+            .def("print_bar_coords", &BiLinearInterpolator::print_bar_coords)
             .def_readonly("values", &BiLinearInterpolator::values);
 }
 
