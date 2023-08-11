@@ -3,6 +3,8 @@
 
 #endif //PARDELAUNAY_TRIANGULATION_H
 
+#include <parlay/primitives.h>
+
 // Bijection: NxN -> N
 uint32_t bijection(uint32_t& a, uint32_t& b) {
     return (a + b) * (a + b + 1) / 2 + b;
@@ -20,6 +22,7 @@ public:
     py::array_t<size_t, py::array::c_style | py::array::forcecast> triangles;
     Triangulation() = default;
     Triangulation(Delaunator &D);
+    int32_t find_triangle_naive(double x, double y);
     bool point_in_triangle(parlay::sequence<double>& bar_coords);
     std::pair<int32_t, parlay::sequence<double>> check_neighborhood(double x, double y, int32_t pi);
     std::pair<int32_t, parlay::sequence<double>> check_adj_triangles(double x, double y, uint32_t t);
@@ -109,8 +112,8 @@ parlay::sequence<double> Triangulation::barycentric_coordinates(double x, double
     uint32_t k = triangles.at(t, 2);
 
     double x1 = vertices.at(i, 0);
-    double x2 = vertices.at(i, 1);
-    double y1 = vertices.at(j, 0);
+    double y1 = vertices.at(i, 1);
+    double x2 = vertices.at(j, 0);
     double y2 = vertices.at(j, 1);
     double x3 = vertices.at(k, 0);
     double y3 = vertices.at(k, 1);
@@ -140,8 +143,8 @@ parlay::sequence<double> Triangulation::barycentric_coordinates(double x, double
     // https://en.wikipedia.org/wiki/Barycentric_coordinate_system#Vertex_approach
 
     double x1 = vertices.at(i, 0);
-    double x2 = vertices.at(i, 1);
-    double y1 = vertices.at(j, 0);
+    double y1 = vertices.at(i, 1);
+    double x2 = vertices.at(j, 0);
     double y2 = vertices.at(j, 1);
     double x3 = vertices.at(k, 0);
     double y3 = vertices.at(k, 1);
@@ -166,32 +169,36 @@ parlay::sequence<double> Triangulation::barycentric_coordinates(double x, double
     return {lambda_1, lambda_2, lambda_3};
 }
 
-//int32_t Triangulation::find_triangle(double x, double y) {
-//
-//    auto minelem = parlay::min_element(triangulation.P, [&](pbbsbench::pointT a, pbbsbench::pointT b) {
-//        auto dax = (a.x - x);
-//        auto day = (a.y - y);
-//        auto da = dax*dax + day*day;
-//        auto dbx = (b.x - x);
-//        auto dby = (b.y - y);
-//        auto db = dbx*dbx + dby*dby;
-//        return da < db;
-//    });
-////    for (uint32_t i = 0; i < triangulation.numPoints(); ++i) {
-////        auto p = triangulation.P[i];
-////        double dx = (p.x - x);
-////        double dy = (p.y - y);
-////        double d = dx * dx + dy * dy;
-////        if (min_d > d) {
-////            min_d = d;
-////            j = i;
-////        }
-////    }
-//
-//    auto j = minelem - triangulation.P.begin();
-//
-//    return check_neighborhood(x, y, int32_t(j));
-//}
+int32_t Triangulation::find_triangle_naive(double x, double y) {
+    auto iota = parlay::iota(adj_p2t.size());
+    auto minelem = parlay::min_element(iota, [&](auto a, auto b) {
+        auto ax = vertices.at(a, 0);
+        auto ay = vertices.at(a, 1);
+        auto bx = vertices.at(b, 0);
+        auto by = vertices.at(b, 1);
+        auto dax = (ax - x);
+        auto day = (ay - y);
+        auto da = dax*dax + day*day;
+        auto dbx = (bx - x);
+        auto dby = (by - y);
+        auto db = dbx*dbx + dby*dby;
+        return da < db;
+    });
+//    for (uint32_t i = 0; i < triangulation.numPoints(); ++i) {
+//        auto p = triangulation.P[i];
+//        double dx = (p.x - x);
+//        double dy = (p.y - y);
+//        double d = dx * dx + dy * dy;
+//        if (min_d > d) {
+//            min_d = d;
+//            j = i;
+//        }
+//    }
+
+    auto j = minelem - iota.begin();
+
+    return check_neighborhood(x, y, int32_t(j)).first;
+}
 
 //class Triangulation {
 //public:
