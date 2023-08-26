@@ -30,8 +30,12 @@ PYBIND11_MODULE(pydelaunay, m) {
     m.def("delaunay", &numpy_delaunay);
     py::class_<Triangulation>(m, "Triangulation", "Triangulation class")
             .def(py::init<>(), "Default constructor, does nothing")
-            .def("find_triangle_naive", static_cast<int32_t (Triangulation::*)(double, double)>(&Triangulation::find_triangle_naive),
+            .def("find_triangle_naive", &Triangulation::find_triangle_naive,
                  "Return index of triangle, containing point p, else return -1", py::arg("x"), py::arg("y"))
+            .def("find_triangle_bruteforce", &Triangulation::find_triangle_bruteforce,
+                 "Return index of triangle, containing point p, else return -1", py::arg("x"), py::arg("y"))
+            .def("jump_and_walk", &Triangulation::find_triangle_jump_and_walk,
+                 "Using nearest vertex return index of triangle, containing point p, else return -1", py::arg("x"), py::arg("y"), py::arg("neighbor"))
             .def_readonly("vertices", &Triangulation::vertices, "numpy array of vertices")
             .def_readonly("triangles", &Triangulation::triangles, "numpy array of triangles");
     py::class_<BiLinearInterpolator>(m, "BiLinearInterpolator", "BiLinearInterpolator class")

@@ -16,7 +16,7 @@ public:
     BiLinearInterpolator() = default;
     BiLinearInterpolator(const py::array_t<double, py::array::c_style | py::array::forcecast>& points,
                          const py::array_t<float, py::array::c_style | py::array::forcecast>& values);
-    double bilinear_barycentric_interpolation(int32_t t, double fill_value, parlay::sequence<double>& bar_coords);
+    double bilinear_barycentric_interpolation(const int64_t t, const parlay::sequence<double>& bar_coords);
     py::array_t<float, py::array::c_style | py::array::forcecast> call(const py::array_t<double, py::array::c_style | py::array::forcecast>& points,
                                                                        const py::array_t<int32_t, py::array::c_style | py::array::forcecast>& neighbors,
                                                                        float fill_value = 0.0);
@@ -37,7 +37,7 @@ BiLinearInterpolator::BiLinearInterpolator(const py::array_t<double, py::array::
     this -> triangulation = numpy_delaunay(points);
 }
 
-double BiLinearInterpolator::bilinear_barycentric_interpolation(int32_t t, double fill_value, parlay::sequence<double>& bar_coords) {
+double BiLinearInterpolator::bilinear_barycentric_interpolation(const int64_t t, const parlay::sequence<double>& bar_coords) {
     uint32_t i = triangulation.triangles.at(t, 0);
     uint32_t j = triangulation.triangles.at(t, 1);
     uint32_t k = triangulation.triangles.at(t, 2);
@@ -57,11 +57,18 @@ py::array_t<float, py::array::c_style | py::array::forcecast> BiLinearInterpolat
     parlay::parallel_for(0, n, [&](uint32_t i) {
         double x = points.at(i, 0);
         double y = points.at(i, 1);
-        int32_t neighbor = neighbors.at(i);
-        auto checked = this -> triangulation.check_neighborhood(x, y, neighbor);
-        if (checked.first != -1) {
-            interpolated[i] = bilinear_barycentric_interpolation(checked.first, fill_value, checked.second);
-        }
+
+//        int32_t t = triangulation.find_triangle_bruteforce(x, y);
+//        if (t != -1) {
+//            auto bar_coords = triangulation.barycentric_coordinates(x, y, uint32_t(t));
+//            interpolated[i] = bilinear_barycentric_interpolation(t, bar_coords);
+//        }
+
+       auto neighbor = neighbors.at(i);
+       auto checked = triangulation.jump_and_walk(x, y, neighbor);
+       if (checked.first != -1) {
+           interpolated[i] = bilinear_barycentric_interpolation(checked.first, checked.second);
+       }
     });
 
     std::vector<int64_t> shape = {n};

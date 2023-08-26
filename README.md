@@ -1,6 +1,6 @@
 # pydelaunay
-Python binding of Parallel [Delaunay Triangulation](https://en.wikipedia.org/wiki/Delaunay_triangulation) from **[ParGeo](https://github.com/ParAlg/ParGeo)** lib       
-ParGeo is heavily based on **[parlaylib](https://cmuparlay.github.io/parlaylib/)**, so you'll need to install it as in [this guide](https://cmuparlay.github.io/parlaylib/installation.html) and add it to CMakeLists.txt      
+Python binding of [Delaunay Triangulation](https://en.wikipedia.org/wiki/Delaunay_triangulation) from **[delaunator-cpp](https://github.com/abellgithub/delaunator-cpp)** lib       
+My additional code is heavily based on **[parlaylib](https://cmuparlay.github.io/parlaylib/)**, so you'll need to install it as in [this guide](https://cmuparlay.github.io/parlaylib/installation.html) and add it to CMakeLists.txt      
 ### Installation       
 You'll have to manually put all required pathes into CMakeLists.txt       
 ```console
