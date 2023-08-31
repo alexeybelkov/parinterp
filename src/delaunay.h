@@ -17,6 +17,7 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include <parlay/primitives.h>
 
 namespace delaunator {
 
@@ -312,7 +313,8 @@ namespace delaunator {
         std::tie(m_center_x, m_center_y) = circumcenter(i0x, i0y, i1x, i1y, i2x, i2y);
 
         // sort the points by distance from the seed triangle circumcenter
-        std::sort(ids.begin(), ids.end(), compare{ coords, m_center_x, m_center_y });
+        std::sort(ids.begin(), ids.end(), compare{ coords, m_center_x, m_center_y }); // might be a bottleneck
+
 
         // initialize a hash table for storing edges of the advancing convex hull
         m_hash_size = static_cast<std::size_t>(std::llround(std::ceil(std::sqrt(n))));

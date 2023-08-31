@@ -20,7 +20,7 @@ for key, p in path.items():
 times = {'pydelaunay': [], 'scipy': []}
 sizes = []
 
-os.environ['PARLAY_NUM_THREADS'] = '32'
+os.environ['PARLAY_NUM_THREADS'] = '4'
 
 for k, x in tqdm(arrays.items()):
     points = np.transpose((~np.isnan(x)).nonzero())

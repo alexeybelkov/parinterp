@@ -52,9 +52,9 @@ py::array_t<float, py::array::c_style | py::array::forcecast> BiLinearInterpolat
                                                                                          const py::array_t<int32_t, py::array::c_style | py::array::forcecast>& neighbors,
                                                                                          float fill_value) {
     uint32_t n = points.shape()[0];
-    parlay::sequence<float> interpolated(n, fill_value);
+//    parlay::sequence<float> interpolated(n, fill_value);
 
-    parlay::parallel_for(0, n, [&](uint32_t i) {
+    parlay::sequence<float> interpolated = parlay::tabulate(n, [&](uint32_t i) {
         double x = points.at(i, 0);
         double y = points.at(i, 1);
 
@@ -64,12 +64,30 @@ py::array_t<float, py::array::c_style | py::array::forcecast> BiLinearInterpolat
 //            interpolated[i] = bilinear_barycentric_interpolation(t, bar_coords);
 //        }
 
-       auto neighbor = neighbors.at(i);
-       auto checked = triangulation.jump_and_walk(x, y, neighbor);
-       if (checked.first != -1) {
-           interpolated[i] = bilinear_barycentric_interpolation(checked.first, checked.second);
-       }
+        auto neighbor = neighbors.at(i);
+        auto checked = triangulation.jump_and_walk(x, y, neighbor);
+        if (checked.first != -1)
+            return float(bilinear_barycentric_interpolation(checked.first, checked.second));
+        else
+            return fill_value;
     });
+
+//    parlay::parallel_for(0, n, [&](uint32_t i) {
+//        double x = points.at(i, 0);
+//        double y = points.at(i, 1);
+//
+////        int32_t t = triangulation.find_triangle_bruteforce(x, y);
+////        if (t != -1) {
+////            auto bar_coords = triangulation.barycentric_coordinates(x, y, uint32_t(t));
+////            interpolated[i] = bilinear_barycentric_interpolation(t, bar_coords);
+////        }
+//
+//       auto neighbor = neighbors.at(i);
+//       auto checked = triangulation.jump_and_walk(x, y, neighbor);
+//       if (checked.first != -1) {
+//           interpolated[i] = bilinear_barycentric_interpolation(checked.first, checked.second);
+//       }
+//    });
 
     std::vector<int64_t> shape = {n};
     std::vector<int64_t> strides = {sizeof(float)};
