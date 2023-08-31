@@ -14,9 +14,9 @@ namespace py = pybind11;
 using namespace delaunator;
 
 Triangulation numpy_delaunay(const py::array_t<double, py::array::c_style | py::array::forcecast>& array) {
-    uint32_t n = array.shape()[0];
+    uint64_t n = uint64_t(array.shape()[0]);
     std::vector<double> P(2 * n);
-    parlay::parallel_for(0, n, [&](uint32_t i) {
+    parlay::parallel_for(0, n, [&](uint64_t i) {
        P[2 * i] = array.at(i, 0);
        P[2 * i + 1] = array.at(i, 1);
     });
