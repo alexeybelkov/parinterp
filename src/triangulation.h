@@ -10,6 +10,13 @@
 #include <parlay/primitives.h>
 
 // Szudzik’s Pairing Function https://en.wikipedia.org/wiki/Pairing_function#Other_pairing_functions
+
+uint64_t elegant_pair(const int64_t& a, const int64_t& b) {
+    const uint64_t aa = uint64_t(a);
+    const uint64_t bb = uint64_t(b);
+    return bb * bb + aa;
+}
+
 uint64_t elegant_pair(const int32_t& a, const int32_t& b) {
     const uint64_t aa = uint64_t(a);
     const uint64_t bb = uint64_t(b);
@@ -20,24 +27,12 @@ uint64_t elegant_pair(const uint32_t& a, const uint32_t& b) {
     const uint64_t aa = uint64_t(a);
     const uint64_t bb = uint64_t(b);
     return bb * bb + aa;
-//    return (aa << 15) + bb;
-//    if (aa > bb)
-//        return bb*bb + aa;
-//    else
-//        return aa * aa + aa + bb;
 }
 
-uint64_t elegant_pair(const std::pair<int32_t, int32_t>& e) {
+uint64_t elegant_pair(const std::pair<int64_t, int64_t>& e) {
     const uint64_t aa = e.first;
     const uint64_t bb = e.second;
     return bb * bb + aa;
-//    return (aa << 15) + bb;
-//    auto p = (a + b);
-//    return (p * (p + 1) + 2 * a) / 2;
-//    if (aa > bb)
-//        return bb*bb + aa;
-//    else
-//        return aa * aa + aa + bb;
 }
 
 int32_t sign(const int32_t& x) {
@@ -56,24 +51,23 @@ bool edges_eq(uint32_t a, uint32_t b, uint32_t c, uint32_t d) {
 }
 
 // https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection#Given_two_points_on_each_line_segment
+// Maybe use Knuth's float comparison as in https://stackoverflow.com/a/253874/15488180 ??????????
+bool segm_intersection(const double& Ax, const double& Ay, const double& Bx, const double& By,
+                       const double& Cx, const double& Cy, const double& Dx, const double& Dy) {
 
-bool segm_intersection(double Ax, double Ay, double Bx, double By,
-                       double Cx, double Cy, double Dx, double Dy) {
+    auto dAxBx = Ax - Bx;
+    auto dAxCx = Ax - Cx;
+    auto dAyCy = Ay - Cy;
+    auto dCxDx = Cx - Dx;
+    auto dCyDy = Cy - Dy;
+    auto dAyBy = Ay - By;
 
-    auto AxCy = Ax * Cy;
-    auto AxDy = Ax * Dy;
-    auto CxAy = Cx * Ay;
-    auto DxAy = Dx * Ay;
-    auto CxBy = Cx * By;
-    auto BxCy = Bx * Cy;
-
-    auto denum = AxCy - AxDy - BxCy + Bx * Dy - CxAy + DxAy - Dx * By + CxBy;
+    auto denum = dAxBx * dCyDy - dAyBy * dCxDx;
     if (denum == 0.0)
         return false;
 
-    auto unnorm_t = AxCy - AxDy + Cx * Dy - CxAy + DxAy - Dx * Cy;
-    auto unnorm_u = -Ax * By - CxAy + CxBy + Bx * Ay + AxCy - BxCy;
-
+    auto unnorm_t = dAxCx * dCyDy - dAyCy * dCxDx;
+    auto unnorm_u = dAxCx * dAyBy - dAyCy * dAxBx;
 
     bool is_t, is_u;
 
@@ -113,110 +107,6 @@ public:
     std::pair<int64_t, parlay::sequence<double>> check_neighborhood(const double x, const double y, const uint32_t pi);
     std::pair<int64_t, parlay::sequence<double>> check_adj_triangles(const double x, const double y, const uint32_t t);
     parlay::sequence<double> barycentric_coordinates(const double& x, const double& y, const uint32_t& t);
-
-    py::array_t<int64_t, py::array::c_style | py::array::forcecast> check_jump_and_walk(const double x, const double y, uint32_t neighbor) {
-        int64_t res_tri = -2;
-        double lx = vertices.at(neighbor, 0);
-        double ly = vertices.at(neighbor, 1);
-        std::pair<int64_t, int64_t> curr_edge = {-1, -1};
-        int64_t curr_tri = -1;
-
-        std::vector<int64_t> trios = {-2};
-
-        for (auto& t : adj_p2t[neighbor]) {
-            auto bar_coords = barycentric_coordinates(x, y, t);
-            trios.push_back(t);
-            if (point_in_triangle(bar_coords)) {
-                res_tri = t;
-                goto RETURN;
-            }
-            for (uint32_t i = 0; i < 3; ++i) {
-                auto edge = get_edge(i, t);
-                if (edge.first == neighbor or edge.second == neighbor)
-                    continue;
-                double ax = vertices.at(edge.first, 0), ay = vertices.at(edge.first, 1);
-                double bx = vertices.at(edge.second, 0), by = vertices.at(edge.second, 1);
-                if (not segm_intersection(ax, ay, bx, by, x, y, lx, ly))
-                    continue;
-                curr_edge = edge;
-                curr_tri = t;
-
-//                if (curr_edge.first < -1 or curr_edge.second < -1)
-//                    std::cout << curr_edge.first << ' ' << curr_edge.second << '\n';
-//                if (curr_tri < -1)
-//                    std::cout << curr_tri << '\n';
-
-                break;
-            }
-            res_tri = curr_tri;
-            if (curr_tri != -1)
-                break;
-        }
-
-//        trios.push_back(-2);
-
-        if (curr_tri == -1) {
-            res_tri = -1;
-            goto RETURN;
-        }
-
-        else {
-            res_tri = curr_tri;
-            auto bar_coords = barycentric_coordinates(x, y, res_tri);
-            if (point_in_triangle(bar_coords))
-                goto RETURN;
-        }
-
-        for (uint32_t i = 0; i < 128; ++i) {
-
-            trios.push_back(curr_tri);
-
-//            if (curr_edge.first < -1 or curr_edge.second < -1)
-//                std::cout << curr_edge.first << ' ' << curr_edge.second << '\n';
-//            if (curr_tri < -1)
-//                std::cout << curr_tri << '\n';
-
-            if (curr_edge.first == -1) {
-                auto bar_coords = barycentric_coordinates(x, y, curr_tri);
-                if (point_in_triangle(bar_coords)) {
-                    res_tri = curr_tri;
-                    goto RETURN;
-                    //return {curr_tri, bar_coords};
-                }
-                res_tri = -1;
-                goto RETURN; //return {-1, {}};
-            }
-
-            auto adj_tris = adj_e2t[elegant_pair(curr_edge)];
-            if (adj_tris[0] == adj_tris[1]) { // check if edge is in dDT
-//                return {-1, {}};
-                res_tri = -1;
-                goto RETURN;
-            }
-
-            //step over current edge
-
-            curr_tri = (adj_tris[0] == curr_tri) ? adj_tris[1] : adj_tris[0];
-            auto bar_coords = barycentric_coordinates(x, y, curr_tri);
-            if (point_in_triangle(bar_coords)) {
-                trios.push_back(curr_tri);
-                res_tri = curr_tri;
-                goto RETURN; // return {curr_tri, bar_coords};
-            }
-            curr_edge = check_triangle_line_intersection(curr_tri, curr_edge.first, curr_edge.second, x, y, lx, ly);
-
-        }
-
-        RETURN:
-
-        int64_t tri = find_triangle_bruteforce(x, y);
-        trios.push_back(res_tri);
-        trios.insert(trios.cbegin(), tri);
-        std::vector<int64_t> shape = {int64_t(trios.size())};
-        std::vector<int64_t> strides = {sizeof(int64_t)};
-
-        return {std::move(shape), std::move(strides), trios.data()};
-    }
 };
 
 Triangulation::Triangulation(Delaunator& D) {
@@ -232,10 +122,8 @@ Triangulation::Triangulation(Delaunator& D) {
     this->triangles = {std::move(triangles_shape), std::move(triangles_strides), D.triangles.data()};
 
     this -> adj_p2t = parlay::sequence<parlay::sequence<uint32_t>>(numVertices);
-//    this -> adj_e2t = std::vector<std::vector<std::vector<uint32_t>>>(numVertices, std::vector<std::vector<uint32_t>>(numVertices, std::vector<uint32_t>()));
-//    uint32_t len = 0;
     for (uint32_t i = 0; i < numTriangles; ++i) {
-        for (int32_t j = 0; j < 3; ++j) {
+        for (uint32_t j = 0; j < 3; ++j) {
             uint32_t a = triangles.at(i, j);
             uint32_t b = triangles.at(i, fast_mod(j + 1, 3));
 
@@ -250,14 +138,9 @@ Triangulation::Triangulation(Delaunator& D) {
             }
             else {
                 got -> second.push_back(i);
-//                len = got -> second.size() > len ? got -> second.size() : len;
             }
         }
     }
-//    std::cout << edges.size() << ' ' << triangles.shape()[0] << ' ' << vertices.shape()[0] << '\n';
-//    std::cout << int32_t(edges.size()) << ' ' << int32_t(triangles.shape()[0]) << ' ' << int32_t(vertices.shape()[0]) << '\n';
-//    std::cout << 1 - int32_t(edges.size()) + int32_t(triangles.shape()[0]) + int32_t(vertices.shape()[0]) << '\n';
-//    std::cout << len << '\n';
 }
 
 Triangulation::~Triangulation() {
@@ -284,7 +167,6 @@ std::pair<int64_t, parlay::sequence<double>> Triangulation::check_adj_triangles(
         for (auto& tt : adj_e2t[e]) {
             if (tt != t) {
                 auto bar_coords = barycentric_coordinates(x, y, tt);
-//                std::cout << bar_coords[0].first << ' ' << bar_coords[1].first << ' ' << bar_coords[2].first << std::endl;
                 if (point_in_triangle(bar_coords)) {
                     return {tt, bar_coords};
                 }
@@ -391,13 +273,14 @@ std::pair<int64_t, int64_t> Triangulation::check_triangle_line_intersection(cons
 }
 
 // Jump-and-Walk algorithm from https://www.cs.montana.edu/bhz/doc/isvd12.pdf
-
+// and
+// https://inria.hal.science/inria-00072509/document
 std::pair<int64_t, parlay::sequence<double>> Triangulation::jump_and_walk(const double& x, const double& y, const uint32_t& neighbor) {
     double lx = vertices.at(neighbor, 0);
     double ly = vertices.at(neighbor, 1);
     std::pair<int64_t, int64_t> curr_edge = {-1, -1};
     int64_t curr_tri = -1;
-    for (uint32_t& t : adj_p2t[neighbor]) {
+    for (uint32_t t : adj_p2t[neighbor]) {
         auto bar_coords = barycentric_coordinates(x, y, t);
         if (point_in_triangle(bar_coords)) {
             return {t, bar_coords};
@@ -429,7 +312,7 @@ std::pair<int64_t, parlay::sequence<double>> Triangulation::jump_and_walk(const 
     }
 
 //    while (true) {
-    for (uint64_t i = 0; i < 64; ++i) {
+    for (uint64_t i = 0; i < 128; ++i) {
 
         if (curr_edge.first == -1) {
             auto bar_coords = barycentric_coordinates(x, y, curr_tri);
@@ -451,11 +334,23 @@ std::pair<int64_t, parlay::sequence<double>> Triangulation::jump_and_walk(const 
 //            return {curr_tri, bar_coords};
         curr_edge = check_triangle_line_intersection(curr_tri, curr_edge.first, curr_edge.second, x, y, lx, ly);
 
+//        if (i >= 125) {
+//            std::cout << i << '\n';
+//            std::cout << '(' << curr_edge.first << ',' << curr_edge.second << ") " << curr_tri << '\n';
+//            std::cout << '(' << x << ',' << y << ')' << " (" << lx << ',' << ly << ")\n";
+//            double Ax = vertices.at(curr_edge.first, 0), Ay = vertices.at(curr_edge.first, 1);
+//            double Bx = vertices.at(curr_edge.second, 0), By = vertices.at(curr_edge.second, 1);
+//            std::cout << '(' << Ax << ',' << Ay << ')' << " (" << Bx << ',' << By << ")\n";
+//        }
+
     }
 //    auto tri = find_triangle_bruteforce(x, y);
 //    if (tri == -1)
 //        return {-1, {}};
 //    return {tri, barycentric_coordinates(x, y, tri)};
+//    if (curr_tri == -1)
+//        return {-1, {}};
+//    return {curr_tri, barycentric_coordinates(x, y, curr_tri)};
     return {-1, {}};
 }
 

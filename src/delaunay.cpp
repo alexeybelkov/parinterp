@@ -32,7 +32,6 @@ PYBIND11_MODULE(pydelaunay, m) {
             .def(py::init<>(), "Default constructor, does nothing")
             .def("find_triangle_naive", &Triangulation::find_triangle_naive,
                  "Return index of triangle, containing point p, else return -1", py::arg("x"), py::arg("y"))
-            .def("check_jump_and_walk", &Triangulation::check_jump_and_walk, "Returns jump_and_walk path", py::arg("x"), py::arg("y"), py::arg("neighbor"))
             .def("find_triangle_bruteforce", &Triangulation::find_triangle_bruteforce,
                  "Return index of triangle, containing point p, else return -1", py::arg("x"), py::arg("y"))
             .def("jump_and_walk", &Triangulation::find_triangle_jump_and_walk,
@@ -44,7 +43,6 @@ PYBIND11_MODULE(pydelaunay, m) {
                     const py::array_t<float, py::array::c_style | py::array::forcecast>&>())
             .def("__call__", &BiLinearInterpolator::call)
             .def_readonly("triangulation", &BiLinearInterpolator::triangulation)
-            //            .def("print_bar_coords", &BiLinearInterpolator::print_bar_coords)
             .def_readonly("values", &BiLinearInterpolator::values);
 }
 

@@ -6,7 +6,7 @@ from deli import load_json
 from matplotlib import pyplot as plt
 from scipy.spatial import Delaunay
 from tqdm import tqdm
-from interp.interpolator import Linear2DInterpolator
+from pydelaunay_interp.interpolator import Linear2DInterpolator
 from scipy.interpolate import griddata
 import os
 
@@ -20,7 +20,7 @@ for key, p in path.items():
 times = {'pydelaunay': [], 'scipy': []}
 sizes = []
 
-os.environ['PARLAY_NUM_THREADS'] = '4'
+os.environ['PARLAY_NUM_THREADS'] = '8'
 
 for k, x in tqdm(arrays.items()):
     points = np.transpose((~np.isnan(x)).nonzero())
