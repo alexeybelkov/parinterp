@@ -57,16 +57,6 @@ py::array_t<float, py::array::c_style | py::array::forcecast> BiLinearInterpolat
     parlay::sequence<float> interpolated = parlay::tabulate(n, [&](uint32_t i) {
         double x = points.at(i, 0);
         double y = points.at(i, 1);
-
-//        int64_t t = triangulation.find_triangle_bruteforce(x, y);
-//        if (t != -1) {
-//            auto bar_coords = triangulation.barycentric_coordinates(x, y, uint32_t(t));
-//            return float(bilinear_barycentric_interpolation(t, bar_coords));
-//        }
-//        else {
-//            return fill_value;
-//        }
-
         auto neighbor = neighbors.at(i);
         auto checked = triangulation.jump_and_walk(x, y, neighbor);
         if (checked.first != -1)

@@ -37,12 +37,12 @@ for k, arrs in tqdm(arrays.items()):
 
     for workers in WORKERS_LIST:
         os.environ['PARLAY_NUM_THREADS'] = str(workers)
-        interp = lambda: Linear2DInterpolator(x_points, x_values)(int_points, fill_value=0.0, workers=1)
+        interp = lambda: Linear2DInterpolator(x_points, x_values)(int_points, fill_value=0.0, workers=16)
         times.append(repeat(interp, number=1, repeat=16))
 
     plt.boxplot(times, labels=WORKERS_LIST, vert=True)
     plt.title(f'Array size: {len(x_points) + len(int_points)}')
     plt.xlabel('num workers')
     plt.ylabel('')
-    plt.savefig(f'benchmark/1kd_{arr_size}_num_workers.jpg')
+    plt.savefig(f'benchmark/16pt_16kd_{arr_size}_num_workers.jpg')
     plt.clf()
