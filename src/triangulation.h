@@ -7,7 +7,7 @@
 
 #endif //PARDELAUNAY_TRIANGULATION_H
 
-#include <parlay/primitives.h>
+// #include <parlay/primitives.h>
 
 // Szudzik’s Pairing Function https://en.wikipedia.org/wiki/Pairing_function#Other_pairing_functions
 
@@ -91,22 +91,22 @@ public:
     uint32_t numTriangles;
     parlay::sequence<parlay::sequence<uint32_t>> adj_p2t;
     std::unordered_map<uint64_t, parlay::sequence<uint32_t>> adj_e2t;
-    py::array_t<double, py::array::c_style | py::array::forcecast> vertices;
+    py::array_t<int64_t, py::array::c_style | py::array::forcecast> vertices;
     py::array_t<size_t, py::array::c_style | py::array::forcecast> triangles;
     Triangulation() = default;
     Triangulation(Delaunator& D);
     ~Triangulation();
-    int64_t find_triangle_naive(const double x, const double y);
-    int64_t find_triangle_bruteforce(const double x, const double y);
-    int64_t find_triangle_jump_and_walk(const double x, const double y, uint32_t neighbor);
+    int64_t find_triangle_naive(const int64_t x, const int64_t y);
+    int64_t find_triangle_bruteforce(const int64_t x, const int64_t y);
+    int64_t find_triangle_jump_and_walk(const int64_t x, const int64_t y, uint32_t neighbor);
     bool point_in_triangle(parlay::sequence<double>& bar_coords);
     std::pair<int64_t, int64_t> get_edge(const uint32_t& i, const uint32_t& t);
     std::pair<int64_t, int64_t> check_triangle_line_intersection(const uint32_t& t, const int64_t& a, const int64_t& b,
-                                                                 const double& Ax, const double& Ay, const double& Bx, const double& By);
+                                                                 const int64_t& Ax, const int64_t& Ay, const int64_t& Bx, const int64_t& By);
     std::pair<int64_t, parlay::sequence<double>> jump_and_walk(const double& x, const double& y, const uint32_t& neighbor);
-    std::pair<int64_t, parlay::sequence<double>> check_neighborhood(const double x, const double y, const uint32_t pi);
-    std::pair<int64_t, parlay::sequence<double>> check_adj_triangles(const double x, const double y, const uint32_t t);
-    parlay::sequence<double> barycentric_coordinates(const double& x, const double& y, const uint32_t& t);
+    std::pair<int64_t, parlay::sequence<double>> check_neighborhood(const int64_t x, const int64_t y, const uint32_t pi);
+    std::pair<int64_t, parlay::sequence<double>> check_adj_triangles(const int64_t x, const int64_t y, const uint32_t t);
+    parlay::sequence<double> barycentric_coordinates(const int64_t& x, const int64_t& y, const uint32_t& t);
 };
 
 Triangulation::Triangulation(Delaunator& D) {
@@ -115,10 +115,13 @@ Triangulation::Triangulation(Delaunator& D) {
     numTriangles = D.triangles.size() / 3;
     std::vector<int64_t> points_shape = {numVertices, 2};
     std::vector<int64_t> triangles_shape = {numTriangles, 3};
-    std::vector<int64_t> points_strides = {sizeof(double) * 2, sizeof(double)};
+    std::vector<int64_t> points_strides = {sizeof(int64_t) * 2, sizeof(int64_t)};
     std::vector<int64_t> triangles_strides = {sizeof(size_t) * 3, sizeof(size_t)};
-
-    this->vertices = {std::move(points_shape), std::move(points_strides), D.coords.data()};
+    std::vector<int64_t> coords(numVertices * 2);
+    parlay::parallel_for(0, numVertices * 2, [&](uint32_t i) {
+        coords[i] = int64_t(D.coords[i]);
+    });
+    this->vertices = {std::move(points_shape), std::move(points_strides), coords.data()};
     this->triangles = {std::move(triangles_shape), std::move(triangles_strides), D.triangles.data()};
 
     this -> adj_p2t = parlay::sequence<parlay::sequence<uint32_t>>(numVertices);
@@ -131,8 +134,7 @@ Triangulation::Triangulation(Delaunator& D) {
             if (a > b)
                 std::swap(a, b);
             uint64_t e = elegant_pair(a, b);
-            auto got = adj_e2t.find(e);
-            if (got == adj_e2t.end()) {
+            if (not adj_e2t.contains(e)) {
                 parlay::sequence<uint32_t> s(1, i);
                 adj_e2t.insert({e, s});
             }
