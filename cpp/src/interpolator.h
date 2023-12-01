@@ -10,10 +10,10 @@ public:
     pyarr_float operator()(const Triangulator::pyarr_size_t& int_points, const pyarr_float& values,
                            const Triangulator::pyarr_size_t& neighbors, double fill_value = 0.0) {
         if (triangulation.points.size() / 2 != values.shape()[0]) {
-            throw std::invalid_argument("Length mismath between known points and their values");
+            throw std::invalid_argument("Length mismatch between known points and their values");
         }
         if (neighbors.shape()[0] != int_points.shape()[0]) {
-            throw std::invalid_argument("Length mismath between int_points and their neighbors");
+            throw std::invalid_argument("Length mismatch between int_points and their neighbors");
         }
 
         size_t n = int_points.shape()[0];
