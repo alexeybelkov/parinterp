@@ -1,3 +1,5 @@
+#pragma GCC target("avx2")
+
 #include <iostream>
 #include <stdexcept>
 #include "triangulator.h"
