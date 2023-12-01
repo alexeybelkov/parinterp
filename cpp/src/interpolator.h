@@ -3,7 +3,7 @@ class Interpolator {
 public:
     using pyarr_float = py::array_t<float, py::array::c_style | py::array::forcecast>;
     const Triangulator triangulation;
-    Interpolator(const Triangulator::pyarr_size_t& points, size_t n_jobs)
+    Interpolator(const Triangulator::pyarr_size_t& points, int n_jobs)
         : triangulation(points, n_jobs) {
     }
 
@@ -15,7 +15,7 @@ public:
         if (neighbors.shape()[0] != int_points.shape()[0]) {
             throw std::invalid_argument("Length mismath between int_points and their neighbors");
         }
-        
+
         size_t n = int_points.shape()[0];
         std::vector<float> int_values(n, fill_value);
 

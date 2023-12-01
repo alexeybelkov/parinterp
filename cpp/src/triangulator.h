@@ -20,7 +20,11 @@ public:
     std::vector<std::vector<size_t>> point2tri;
     std::unordered_map<uint64_t, std::array<size_t, 2>> edge2tri;
 
-    Triangulator(const pyarr_size_t& pypoints, size_t n_jobs = 1) : n_jobs_(n_jobs) {
+    Triangulator(const pyarr_size_t& pypoints, int n_jobs = 1) {
+        if (n_jobs < 0 and n_jobs != -1) {
+            throw std::invalid_argument("Invalid number of workers, have to be -1 or positive integer");
+        }
+        n_jobs_ = n_jobs == -1 ? omp_get_num_procs() : n_jobs;
         size_t n = pypoints.shape()[0];
         std::vector<double> double_points(2 * n);
         points.resize(2 * n);
