@@ -5,7 +5,7 @@ from typing import Mapping, List
 from deli import load_json
 from matplotlib import pyplot as plt
 from tqdm import tqdm
-from pydelaunay_interp.interpolator import Linear2DInterpolator
+from python.interpolator import Linear2DInterpolator
 import os
 import argparse
 
@@ -36,8 +36,7 @@ for k, arrs in tqdm(arrays.items()):
     times = []
 
     for workers in WORKERS_LIST:
-        os.environ['PARLAY_NUM_THREADS'] = str(workers)
-        interp = lambda: Linear2DInterpolator(x_points, x_values)(int_points, fill_value=0.0, workers=1)
+        interp = lambda: Linear2DInterpolator(x_points, workers)(int_points, x_values, fill_value=0.0)
         times.append(repeat(interp, number=1, repeat=16))
 
     plt.boxplot(times, labels=WORKERS_LIST, vert=True)
