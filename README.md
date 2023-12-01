@@ -4,7 +4,7 @@ Python library for parallel linear 2D interpolation, it consists of two main par
 - [Delaunay Triangulation](https://en.wikipedia.org/wiki/Delaunay_triangulation) from [delaunator-cpp](https://github.com/abellgithub/delaunator-cpp) lib, still sequential part        
 - Linear 2D interpolation via barycentric coordinates, parallel part
 
-Being mostly fully written in C++ and binded via [pybind11](https://pybind11.readthedocs.io/en/stable/index.html), library achieved very high perfomance speed
+Being almost fully written in C++ and binded via [pybind11](https://pybind11.readthedocs.io/en/stable/index.html), library achieved very high perfomance
 
 ### Installation             
 ```console
