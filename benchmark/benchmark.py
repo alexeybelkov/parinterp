@@ -6,6 +6,14 @@ from deli import load_json
 from timeit import timeit
 from tqdm import tqdm
 from matplotlib import pyplot as plt
+import argparse
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-n", "--n-jobs", required=True, help="Set number of workers", type=int)
+args = parser.parse_args()
+
+n_jobs = args.n_jobs
 
 
 path = load_json('benchmark/path.json')
@@ -28,7 +36,7 @@ for k, x in tqdm(arrays.items()):
     x_values = distances[~np.isnan(distances)]
     surface_map = distances.copy()
 
-    my_interp = lambda: Linear2DInterpolator(x_points, -1)(int_points, x_values, 0.0)
+    my_interp = lambda: Linear2DInterpolator(x_points, n_jobs)(int_points, x_values, 0.0)
     sp_interp = lambda: griddata(x_points, x_values, int_points, method='linear', fill_value=0.0)
 
     sizes.append(x_points.size + int_points.size)
