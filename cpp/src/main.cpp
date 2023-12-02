@@ -8,7 +8,7 @@
 
 PYBIND11_MODULE(parinterp, m) {
     py::class_<Interpolator>(m, "Linear2DInterpolatorCpp", "Interpolator class")
-        .def(py::init<const Triangulator::pyarr_size_t&, int>())
+        .def(py::init<const Triangulator::pyarr_size_t&, const Triangulator::pyarr_size_t&, int>())
         .def("__call__", &Interpolator::operator());
 }
 

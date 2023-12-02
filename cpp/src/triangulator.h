@@ -20,12 +20,12 @@ public:
     std::vector<std::vector<size_t>> point2tri;
     std::unordered_map<uint64_t, std::array<size_t, 2>> edge2tri;
 
-    Triangulator(const pyarr_size_t& pypoints, int n_jobs = 1) {
+    Triangulator(const pyarr_size_t& pypoints, const pyarr_size_t& pytriangles, int n_jobs = 1) {
         if (n_jobs < 0 and n_jobs != -1) {
             throw std::invalid_argument("Invalid number of workers, have to be -1 or positive integer");
         }
         n_jobs_ = n_jobs == -1 ? omp_get_num_procs() : n_jobs;
-        size_t n = pypoints.shape()[0];
+        size_t n = pypoints.shape(0);
         std::vector<double> double_points(2 * n);
         points.resize(2 * n);
         omp_set_dynamic(0);     // Explicitly disable dynamic teams
@@ -35,13 +35,21 @@ public:
             double_points.at(2 * i) = static_cast<double>(pypoints.at(i, 0));
             double_points.at(2 * i + 1) = static_cast<double>(pypoints.at(i, 1));
         }
-        delaunator::Delaunator delaunated(double_points);
-        triangles = std::move(delaunated.triangles);
+        // delaunator::Delaunator delaunated(double_points);
+        // triangles = std::move(delaunated.triangles);
+        triangles.resize(pytriangles.size());
+        #pragma parallel for
+        for (size_t i = 0; i < pytriangles.shape(0); ++i) {
+            size_t t = 3 * i;
+            triangles.at(t) = pytriangles.at(i, 0);
+            triangles.at(t + 1) = pytriangles.at(i, 1);
+            triangles.at(t + 2) = pytriangles.at(i, 2);
+        }
         #pragma parallel for
         for (size_t i = 0; i < n; ++i) {
             size_t j = 2 * i;
-            points.at(j) = static_cast<size_t>(delaunated.coords.at(j));
-            points.at(j + 1) = static_cast<size_t>(delaunated.coords.at(j + 1));
+            points.at(j) = static_cast<size_t>(pypoints.at(i, 0));
+            points.at(j + 1) = static_cast<size_t>(pypoints.at(i, 1));
         }
         point2tri.resize(n);
         for (size_t i = 0; i < triangles.size() / 3; ++i) {

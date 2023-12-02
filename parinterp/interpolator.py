@@ -1,11 +1,11 @@
 import numpy as np
 from cpp.build.parinterp import Linear2DInterpolatorCpp
-from scipy.spatial import KDTree
-from typing import Union
+from scipy.spatial import KDTree, Delaunay
 
 class Linear2DInterpolator(Linear2DInterpolatorCpp):
     def __init__(self, points: np.ndarray, n_jobs: int = 1, **kwargs):
-        super().__init__(points, n_jobs)
+        simplices = Delaunay(points).simplices
+        super().__init__(points, simplices, n_jobs)
         self.kdtree = KDTree(data=points, **kwargs)
         self.n_jobs = n_jobs
 
