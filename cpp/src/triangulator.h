@@ -13,6 +13,7 @@ class Triangulator {
 private:
     size_t n_jobs_;
     friend class Interpolator;
+
 public:
     using pyarr_size_t = py::array_t<size_t, py::array::c_style | py::array::forcecast>;
     std::vector<size_t> points;
@@ -22,13 +23,14 @@ public:
 
     Triangulator(const pyarr_size_t& pypoints, int n_jobs = 1) {
         if (n_jobs < 0 and n_jobs != -1) {
-            throw std::invalid_argument("Invalid number of workers, have to be -1 or positive integer");
+            throw std::invalid_argument(
+                "Invalid number of workers, have to be -1 or positive integer");
         }
         n_jobs_ = n_jobs == -1 ? omp_get_num_procs() : n_jobs;
         size_t n = pypoints.shape()[0];
         std::vector<double> double_points(2 * n);
         points.resize(2 * n);
-        omp_set_dynamic(0);     // Explicitly disable dynamic teams
+        omp_set_dynamic(0);  // Explicitly disable dynamic teams
         omp_set_num_threads(n_jobs_);
         #pragma parallel for
         for (size_t i = 0; i < n; ++i) {
@@ -37,6 +39,7 @@ public:
         }
         delaunator::Delaunator delaunated(double_points);
         triangles = std::move(delaunated.triangles);
+        
         #pragma parallel for
         for (size_t i = 0; i < n; ++i) {
             size_t j = 2 * i;
