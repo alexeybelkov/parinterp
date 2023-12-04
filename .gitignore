@@ -5,5 +5,7 @@ notebooks
 *.so
 *.egg-info
 #benchmark/*.py
-benchmark/*.json
+*.json
 __pycache__
+.vscode
+scripts
