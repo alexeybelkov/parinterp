@@ -13,6 +13,7 @@ class Triangulator {
 private:
     size_t n_jobs_;
     friend class Interpolator;
+
 public:
     using pyarr_size_t = py::array_t<size_t, py::array::c_style | py::array::forcecast>;
     std::vector<size_t> points;
@@ -22,13 +23,14 @@ public:
 
     Triangulator(const pyarr_size_t& pypoints, const pyarr_size_t& pytriangles, int n_jobs = 1) {
         if (n_jobs < 0 and n_jobs != -1) {
-            throw std::invalid_argument("Invalid number of workers, have to be -1 or positive integer");
+            throw std::invalid_argument(
+                "Invalid number of workers, have to be -1 or positive integer");
         }
         n_jobs_ = n_jobs == -1 ? omp_get_num_procs() : n_jobs;
         size_t n = pypoints.shape(0);
         std::vector<double> double_points(2 * n);
         points.resize(2 * n);
-        omp_set_dynamic(0);     // Explicitly disable dynamic teams
+        omp_set_dynamic(0);  // Explicitly disable dynamic teams
         omp_set_num_threads(n_jobs_);
         #pragma parallel for
         for (size_t i = 0; i < n; ++i) {
@@ -164,5 +166,35 @@ public:
         coords_info[2] = x1y2 - x2y1 + (y1 - y2) * xx + (x2 - x1) * yy;
         coords_info[3] = x1y2 - x1y3 + x2y3 - x2y1 + x3y1 - x3y2;
         return coords_info;
+    }
+
+    inline bool is_inside(size_t x, size_t y, size_t t) const {
+        int64_t xx = static_cast<int64_t>(xx);
+        int64_t yy = static_cast<int64_t>(yy);
+        size_t r1 = 2 * triangles.at(t);
+        auto x1 = static_cast<int64_t>(points.at(r1));
+        auto y1 = static_cast<int64_t>(points.at(r1 + 1));
+        size_t r2 = 2 * triangles.at(t + 1);
+        auto x2 = static_cast<int64_t>(points.at(r2));
+        auto y2 = static_cast<int64_t>(points.at(r2 + 1));
+        size_t r3 = 2 * triangles.at(t + 2);
+        auto x3 = static_cast<int64_t>(points.at(r3));
+        auto y3 = static_cast<int64_t>(points.at(r3 + 1));
+        auto area = two_area(x1, y1, x2, y2, x3, y3);
+        auto area1 = two_area(xx, yy, x2, y2, x3, y3);
+        auto area2 = two_area(x1, y1, xx, yy, x3, y3);
+        auto area3 = two_area(x1, y1, x2, y2, xx, yy);
+        return (area == area1 + area2 + area3);
+    }
+
+    inline int64_t naive_locate_point(size_t x, size_t y) const {
+        for (size_t t = 0; t < triangles.size() / 3; ++t) {
+            // auto coords_info = barycentric_coords(x, y, t);
+            // if (point_in_triangle(coords_info)) {
+            if (is_inside(x, y, t)) {
+                return static_cast<int64_t>(t);
+            }
+        }
+        return -1;
     }
 };
