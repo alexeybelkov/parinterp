@@ -91,3 +91,7 @@ inline bool point_in_triangle(const std::array<int64_t, 4>& coords_info) {
            coords_info[3] >= coords_info[1] and coords_info[1] >= 0 and
            coords_info[3] >= coords_info[2] and coords_info[2] >= 0;
 }
+
+inline uint64_t two_area(int64_t Ax, int64_t Ay, int64_t Bx, int64_t By, int64_t Cx, int64_t Cy) {
+    return static_cast<uint64_t>(std::abs((Ax * (By - Cy) + Bx * (Cy - Ay) + Cx * (Ay - By))));
+}

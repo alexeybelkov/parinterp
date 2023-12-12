@@ -14,3 +14,8 @@ class Linear2DInterpolator(Linear2DInterpolatorCpp):
         int_values = super().__call__(points, values, neighbors, fill_value)
         return int_values
     
+
+    def naive_points_location(self, points: np.ndarray):
+        _, neighbors = self.kdtree.query(points, 1, workers=self.n_jobs)
+        return super().naive_points_location(points, neighbors)
+    
