@@ -29,10 +29,11 @@ interp_values = interpolator(interp_points, values, fill_value=0.0)
 ```
 
 ### TODO
-Currently, there are a lot of presumably unnecessary reallocations, try to find a way to remove them        
-Using Python's scipy KDTree is more like a crutch, find fast C++ one-nearest-neighbour algorithm implementation         
-Maybe consider this [Parallel Nearest Neighbors in Low Dimensions with Batch Updates](https://arxiv.org/pdf/2111.04182.pdf)      
-Compare perfomance with and without safety
+* Currently, there are a lot of presumably unnecessary reallocations, try to find a way to remove them        
+* Using Python's scipy KDTree is more like a crutch, find fast C++ one-nearest-neighbour algorithm implementation         
+* Find a way to build a fast bijection $f : S \rightarrow \{0, 1, ..., n\}$, where $|S| = n + 1$, and $S \subset \mathbf{N}$       
+* Maybe consider this [Parallel Nearest Neighbors in Low Dimensions with Batch Updates](https://arxiv.org/pdf/2111.04182.pdf)      
+* Compare perfomance with and without safety
 
 ### Usefull links
 Point location algorithm was highly inspired by paper [Fast randomized point location without preprocessing in two- and
