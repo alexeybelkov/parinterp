@@ -24,8 +24,9 @@ x_points = points[: n // 2]
 values = np.random.uniform(low=0.0, high=1.0, size=(len(x_points),))
 interp_points = points[n // 2:]
 n_jobs = -1 # will be equal to num of CPU cores
-interpolator = Linear2DInterpolator(x_points, n_jobs)
-interp_values = interpolator(interp_points, values, fill_value=0.0)
+interpolator = Linear2DInterpolator(x_points, values, n_jobs)
+# Also you can pass values to __call__ and rewrite the ones that were passed to __init__
+interp_values = interpolator(interp_points, values + 1.0, fill_value=0.0)
 ```
 
 ### TODO
