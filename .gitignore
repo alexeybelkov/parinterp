@@ -9,3 +9,4 @@ notebooks
 __pycache__
 .vscode
 scripts
+gitignore

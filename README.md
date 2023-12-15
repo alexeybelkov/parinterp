@@ -21,7 +21,7 @@ n, m = 1024, 2
 points = np.random.randint(low=0, high=1024, size=(n, m))
 points = np.unique(points, axis=0)
 x_points = points[: n // 2]
-values = np.random.uniform(low=0.0, high=1.0, size=(n,))
+values = np.random.uniform(low=0.0, high=1.0, size=(len(x_points),))
 interp_points = points[n // 2:]
 n_jobs = -1 # will be equal to num of CPU cores
 interpolator = Linear2DInterpolator(x_points, n_jobs)
@@ -31,7 +31,7 @@ interp_values = interpolator(interp_points, values, fill_value=0.0)
 ### TODO
 * Currently, there are a lot of presumably unnecessary reallocations, try to find a way to remove them        
 * Using Python's scipy KDTree is more like a crutch, find fast C++ one-nearest-neighbour algorithm implementation         
-* Find a way to build a fast bijection $f : S \rightarrow \{0, 1, ..., n\}$, where $|S| = n + 1$, and $S \subset \mathbf{N}$       
+* Find a way to build a fast bijection $f : S \rightarrow \{0, 1, ..., n\}$, where $S \subset \mathbf{N}$       
 * Maybe consider this [Parallel Nearest Neighbors in Low Dimensions with Batch Updates](https://arxiv.org/pdf/2111.04182.pdf)      
 * Compare perfomance with and without safety
 
