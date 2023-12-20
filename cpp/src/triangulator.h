@@ -47,8 +47,10 @@ public:
             points.at(j + 1) = static_cast<size_t>(delaunated.coords.at(j + 1));
         }
         point2tri.resize(n);
+        #pragma parallel for
         for (size_t i = 0; i < triangles.size() / 3; ++i) {
             size_t t = 3 * i;
+            // #pragma omp critical
             for (size_t j = 0; j < 3; ++j) {
                 size_t a = triangles.at(t + j);
                 size_t b = triangles.at(t + fast_mod(j + 1, 3));
